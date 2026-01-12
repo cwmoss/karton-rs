@@ -1,0 +1,127 @@
+pub mod album;
+
+use axum::{
+    Json, Router,
+    extract::{Path, State},
+    http::header,
+    routing::{delete, get},
+};
+use env;
+use image::ImageFormat;
+use serde::{Deserialize, Serialize};
+use std::io::{BufWriter, Cursor};
+use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
+
+#[derive(Serialize, Deserialize)]
+struct Greeting {
+    greeting: String,
+    visitor: String,
+    visits: u16,
+}
+
+struct AppState {
+    number_of_visits: AtomicU16,
+    base_path: String,
+}
+
+impl Greeting {
+    fn new(greeting: &str, visitor: String, visits: u16) -> Self {
+        Greeting {
+            greeting: greeting.to_string(),
+            visitor,
+            visits,
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let (base,) = get_args();
+    // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
+    // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
+    // not the state itself. The AtomicU16 is a thread-safe integer that we use to keep track of the number of visits.
+    let app_state = Arc::new(AppState {
+        number_of_visits: AtomicU16::new(1),
+        base_path: base.clone(),
+    });
+
+    // let base = "/Users/rw/dev/karton";
+    let name = "test";
+
+    let files = album::list_files(&app_state.base_path, name);
+
+    for file in files {
+        println!("{:?}", file);
+    }
+
+    // setup our application with "hello world" route at "/
+    let app = Router::new()
+        .route("/hello/{visitor}", get(greet_visitor))
+        .route("/bye", delete(say_goodbye))
+        .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
+        .with_state(app_state);
+
+    // start the server on port 3000
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+
+    println!("Listening on http://0.0.0.0:3000");
+    axum::serve(listener, app).await.unwrap();
+}
+/*
+
+$router->get('/imagesize/([-\w]+)/(\w+)/([-\w]+\.jpg)', function ($name, $size, $img) use ($gallery) {
+    check_login($name);
+    dbg("+++ resize", $name, $size, $img);
+    $gallery->load($name);
+    $gallery->image_resize($name, $img, $size);
+});
+
+*/
+/// Extract the `visitor` path parameter and use it to greet the visitor.
+/// We also use the `State` extractor to access the shared `AppState` and increment the number of visits.
+/// We use `Json` to automatically serialize the `Greeting` struct to JSON.
+async fn greet_visitor(
+    State(app_state): State<Arc<AppState>>,
+    Path(visitor): Path<String>,
+) -> Json<Greeting> {
+    let visits = app_state.number_of_visits.fetch_add(1, Relaxed);
+    Json(Greeting::new("Hello", visitor, visits))
+}
+
+async fn resize_image(
+    State(app_state): State<Arc<AppState>>,
+    Path((album, size, img)): Path<(String, String, String)>,
+) -> impl axum::response::IntoResponse {
+    // album::resize_image(&album, &img, &size)
+    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+    album::resize_image(&app_state.base_path, &album, &img, &size)
+        .write_to(&mut buffer, ImageFormat::Png)
+        .unwrap();
+
+    let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner();
+
+    (
+        axum::response::AppendHeaders([(header::CONTENT_TYPE, "image/jpg")]),
+        bytes,
+    )
+}
+
+/// Say goodbye to the visitor.
+async fn say_goodbye() -> String {
+    "Goodbye".to_string()
+}
+
+fn get_args() -> (String,) {
+    let args = std::env::args().collect::<Vec<String>>();
+    /*if args.len() != 7 {
+        eprintln!("Usage: {} INFILE OUTFILE X Y WIDTH HEIGHT", args[0]);
+        std::process::exit(1);
+    }*/
+    (
+        // args[1].to_owned()
+        args.get(1)
+            .unwrap_or(&env::current_dir().unwrap().to_string_lossy().to_string())
+            .to_owned(),
+        // args[6].parse().unwrap(),
+    )
+}

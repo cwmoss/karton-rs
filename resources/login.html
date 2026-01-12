@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- link rel="icon" type="image/svg+xml" href="/vite.svg" / -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+  //20sec.kyff.localhost/karton
+
+-->
+    <!-- link rel="stylesheet" href="//localhost:10222/css/glightbox.min.css" / -->
+    <!-- script src="//20sec.kyff.localhost/karton/js/glightbox.min.js"></script -->
+
+    <!-- {gallery-data} -->
+    <title>Login Karton</title>
+    <style>
+      body * {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 90vh;
+        /* border: 3px solid green; */
+      }
+      #login {
+        /* height: 100%; */
+      }
+      .btn {
+        color: white;
+        background-color: rgb(60, 214, 17);
+        border: 3px solid #4d7c2a;
+        box-shadow: 3px 3px 8px #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        // display: block;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 45px;
+        margin: 0 0 2em;
+        max-width: 500px;
+        padding: 0 14px;
+        position: relative;
+        text-decoration: none;
+        /* text-transform: uppercase; */
+        width: 100%;
+      }
+      .checked {
+        margin: 1em;
+        position: relative;
+      }
+      .checked::after {
+        content: "";
+        background-color: transparent;
+
+        /* position the checkbox */
+        position: absolute;
+        left: -16px;
+        top: 3px;
+
+        /* setting the checkbox */
+        /* short arm */
+        width: 5px;
+        border-bottom: 3px solid #4d7c2a;
+        /* long arm */
+        height: 11px;
+        border-right: 3px solid #4d7c2a;
+
+        /* rotate the mirrored L to make it a checkbox */
+        transform: rotate(45deg);
+        /* transition: transform 2000ms; */
+        animation: 0.4s ease-out 0s 1 dorotate;
+      }
+      @keyframes dorotate {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(45deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="login">
+        <div class="checked">Successfully Logged In</div>
+        <form action="<?=$login_action?>" method="POST">
+          <button class="btn" type="submit">Continue to Gallery</button>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>
