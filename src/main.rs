@@ -12,6 +12,11 @@ use serde::{Deserialize, Serialize};
 use std::io::{BufWriter, Cursor};
 use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
 
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    // trace::TraceLayer,
+};
+
 #[derive(Serialize, Deserialize)]
 struct Greeting {
     greeting: String,
@@ -45,6 +50,8 @@ async fn main() {
         base_path: base.clone(),
     });
 
+    build_alben(&app_state.base_path);
+
     // let base = "/Users/rw/dev/karton";
     let name = "test";
 
@@ -54,11 +61,14 @@ async fn main() {
         println!("{:?}", file);
     }
 
+    let serve_dir = ServeDir::new("public");
+
     // setup our application with "hello world" route at "/
     let app = Router::new()
         .route("/hello/{visitor}", get(greet_visitor))
         .route("/bye", delete(say_goodbye))
         .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
+        .nest_service("/_assets", serve_dir.clone())
         .with_state(app_state);
 
     // start the server on port 3000
@@ -124,4 +134,26 @@ fn get_args() -> (String,) {
             .to_owned(),
         // args[6].parse().unwrap(),
     )
+}
+
+fn build_alben(base: &str) {
+    let pattern = format!("{}/", base);
+    print!("Building albums in pattern: {}\n", pattern);
+    let albums: Vec<String> = std::fs::read_dir(&pattern)
+        .unwrap()
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.is_dir() {
+                Some(path.file_name()?.to_string_lossy().to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    for album in albums {
+        print!("Found album: {}\n", album);
+        album::build_if_needed(base, &album);
+    }
 }
