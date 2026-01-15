@@ -4,14 +4,19 @@ pub mod album_image;
 use axum::{
     Json, Router,
     extract::{Path, State},
+    http::StatusCode,
     http::header,
+    response::{Html, IntoResponse, Redirect, Response},
     routing::{delete, get},
 };
 use env;
 use image::ImageFormat;
+use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
+// use std::borrow::Cow;
 use std::io::{BufWriter, Cursor};
+use std::path::Path as StdPath;
+use std::path::PathBuf;
 use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
 
 use tower_http::{
@@ -29,6 +34,7 @@ struct Greeting {
 struct AppState {
     number_of_visits: AtomicU16,
     base_path: String,
+    single_album: String,
 }
 
 impl Greeting {
@@ -43,30 +49,57 @@ impl Greeting {
 
 #[tokio::main]
 async fn main() {
-    let (base,) = get_args();
+    let (mut base,) = get_args();
+
+    let single_album = check_if_base_contains_jpgs(&base);
+
+    print!("* Single album mode: '{}'\n", single_album);
+
+    if single_album != "" {
+        base = format!("{}/../", base);
+    }
+
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
     // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
     // not the state itself. The AtomicU16 is a thread-safe integer that we use to keep track of the number of visits.
     let app_state = Arc::new(AppState {
         number_of_visits: AtomicU16::new(1),
         base_path: base.clone(),
+        single_album: single_album,
     });
 
+    // let base_path = StdPath::new(&app_state.base_path);
+    // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
     // build_alben(&app_state.base_path);
 
-    let serve_dir = ServeDir::new("public");
+    // let serve_dir = ServeDir::new("public");
+    // let serve_assets = ServeEmbed::<Assets>::new();
 
     // setup our application with "hello world" route at "/
+    // let mut app = Router::new(); Router<Arc<AppState>>
+
     let app = Router::new()
+        .route("/", get(if_single_album_redirect))
         .route("/hello/{visitor}", get(greet_visitor))
         .route("/bye", delete(say_goodbye))
         .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
         .route("/{album}/zip", get(download_zip))
         .route("/{album}/{size}/{img}", get(resize_image2)) // big size route
         .route("/{album}", get(show_album))
-        .nest_service("/_assets", serve_dir.clone())
-        .with_state(app_state);
-
+        .route("/_assets/{*file}", get(static_handler))
+        // .nest_service("/_0assets", serve_dir.clone())
+        // .nest_service("/_assets", serve_assets.clone())
+        .with_state(app_state)
+        .fallback_service(get(not_found));
+    /*
+        if app_state.single_album != "" {
+            app_state.base_path = format!("{}/../", app_state.base_path);
+            app = app.route(
+                "/",
+                get(|| async { Redirect::permanent(&format!("/{}", app_state.single_album)) }),
+            );
+        }
+    */
     // start the server on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
@@ -93,7 +126,15 @@ async fn greet_visitor(
     let visits = app_state.number_of_visits.fetch_add(1, Relaxed);
     Json(Greeting::new("Hello", visitor, visits))
 }
-
+async fn if_single_album_redirect(
+    State(app_state): State<Arc<AppState>>,
+) -> impl axum::response::IntoResponse {
+    if app_state.single_album != "" {
+        Redirect::permanent(&format!("/{}", app_state.single_album)).into_response()
+    } else {
+        Html("hello, my name is karton").into_response()
+    }
+}
 async fn resize_image2(
     State(app_state): State<Arc<AppState>>,
     Path((album, size, img)): Path<(String, String, String)>,
@@ -223,5 +264,67 @@ fn build_alben(base: &str) {
     for album in albums {
         print!("Found album: {}\n", album);
         album::build_if_needed(base, &album);
+    }
+}
+
+// We use a wildcard matcher ("/dist/*file") to match against everything
+// within our defined assets directory. This is the directory on our Asset
+// struct below, where folder = "examples/public/".
+async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
+    StaticFile(path)
+}
+
+// Finally, we use a fallback route for anything that didn't match.
+async fn not_found() -> Html<&'static str> {
+    Html("<h1>404</h1><p>Not Found</p>")
+}
+
+#[derive(Embed)]
+#[folder = "public/"]
+struct Asset;
+
+pub struct StaticFile<T>(pub T);
+
+impl<T> IntoResponse for StaticFile<T>
+where
+    T: Into<String>,
+{
+    fn into_response(self) -> Response {
+        let path = self.0.into();
+
+        match Asset::get(path.as_str()) {
+            Some(content) => {
+                let mime = mime_guess::from_path(path).first_or_octet_stream();
+                ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+            }
+            None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
+        }
+    }
+}
+
+fn check_if_base_contains_jpgs(base: &str) -> String {
+    let pattern = format!("{}/", base);
+    print!("Checking if base contains jpgs in: {}\n", pattern);
+    let mut files: Vec<PathBuf> = std::fs::read_dir(&pattern)
+        .unwrap()
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.extension()?.to_str()? == "jpg" {
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if files.len() > 0 {
+        print!("Base contains jpg files, using single album mode.\n");
+        let base_path = StdPath::new(&base);
+        // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
+        return base_path.file_name().unwrap().to_str().unwrap().to_string();
+    } else {
+        print!("Base does not contain jpg files, using multi-album mode.\n");
+        return "".to_string();
     }
 }

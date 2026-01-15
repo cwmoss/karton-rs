@@ -8,7 +8,7 @@ let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${
   it.w
 }" data-pswp-height="${it.h}"><img src="/${name}/thumb/${
   it.name
-}" alt="photography" /></a>
+}" alt="photography" loading="lazy"/></a>
     <figcaption>${it.name} ${it.w} x ${it.h}</figcaption>
 </figure>`;
 
@@ -29,7 +29,7 @@ class GalleryGrid extends HTMLElement {
   connectedCallback() {
     this.data = window.__load_data;
     this.name = this.data.name;
-    console.log("GalleryGrid connected", this.data);
+    console.log("GalleryGrid connected ...", this.data);
     this.render();
   }
 
