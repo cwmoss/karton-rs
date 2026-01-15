@@ -305,7 +305,7 @@ where
 fn check_if_base_contains_jpgs(base: &str) -> String {
     let pattern = format!("{}/", base);
     print!("Checking if base contains jpgs in: {}\n", pattern);
-    let mut files: Vec<PathBuf> = std::fs::read_dir(&pattern)
+    let files: Vec<PathBuf> = std::fs::read_dir(&pattern)
         .unwrap()
         .filter_map(|entry| {
             let entry = entry.ok()?;
