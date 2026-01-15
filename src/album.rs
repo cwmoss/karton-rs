@@ -186,8 +186,11 @@ pub fn zip(base: &str, album: &str) -> Option<Vec<u8>> {
         let mut file = fs::File::open(file_path).ok()?;
 
         // Adding the file to the ZIP archive.
-        zip.start_file(file_name, SimpleFileOptions::default())
-            .ok()?;
+        zip.start_file(
+            file_name,
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored),
+        )
+        .ok()?;
 
         let _ = std::io::copy(&mut file, &mut zip);
     }
