@@ -10,6 +10,7 @@ use axum::{
 use env;
 use image::ImageFormat;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::io::{BufWriter, Cursor};
 use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
 
@@ -120,17 +121,21 @@ async fn download_zip(
     State(app_state): State<Arc<AppState>>,
     Path(album): Path<String>,
 ) -> impl axum::response::IntoResponse {
+    let dispo = format!("attachment; filename=\"{}.zip\"", album);
     match album::zip(&app_state.base_path, &album) {
-        Some(zip_data) => (
-            axum::response::AppendHeaders([
-                (header::CONTENT_TYPE, "application/zip"),
-                (
-                    header::CONTENT_DISPOSITION,
-                    "attachment; filename=\"album.zip\"",
-                ),
-            ]),
-            zip_data,
-        ),
+        Some(zip_data) => {
+            (
+                axum::response::AppendHeaders([
+                    (header::CONTENT_TYPE, "application/zip"),
+                    (
+                        header::CONTENT_DISPOSITION,
+                        "attachment; filename=\"album.zip\"", // &*<std::string::String as Into<T>>::into(dispo),
+                                                              // Cow::Owned(dispo),
+                    ),
+                ]),
+                zip_data,
+            )
+        }
         None => (
             axum::response::AppendHeaders([
                 (header::CONTENT_TYPE, "text/html"),
