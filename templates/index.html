@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- link rel="icon" type="image/svg+xml" href="/vite.svg" / -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content="Karton" />
+    <script>
+      window.__load_data = JSON.parse(`{{ album | safe }}`);
+    </script>
+
+    <title>{{name}} | Karton</title>
+
+    <script
+      type="module"
+      crossorigin
+      src="/_assets/js/gallery-grid.js"
+    ></script>
+    <link rel="stylesheet" href="/_assets/css/karton.css" />
+    <link rel="stylesheet" href="/_assets/photoswipe/photoswipe.css" />
+  </head>
+
+  <body>
+    <header>
+      <h1>{{name}}</h1>
+      <h2>{{total}} images <a href="/{{name}}/zip">download all as zip</a></h2>
+    </header>
+    <gallery-grid></gallery-grid>
+
+    <script type="module">
+      import Lightbox from "/_assets/photoswipe/photoswipe-lightbox.esm.min.js";
+      import PhotoSwipe from "/_assets/photoswipe/photoswipe.esm.min.js";
+
+      const lightbox = new Lightbox({
+        gallery: "gallery-grid",
+        children: "figure",
+        pswpModule: PhotoSwipe,
+      });
+      lightbox.on("uiRegister", function () {
+        lightbox.pswp.ui.registerElement({
+          name: "custom-caption",
+          order: 9,
+          isButton: false,
+          appendTo: "root",
+          html: "Caption text",
+          onInit: (el, pswp) => {
+            lightbox.pswp.on("change", () => {
+              const currSlideElement = lightbox.pswp.currSlide.data.element;
+              let captionHTML = "";
+              if (currSlideElement) {
+                const hiddenCaption =
+                  currSlideElement.querySelector("figcaption");
+                console.log("+++ hiddenCaption", hiddenCaption);
+                if (hiddenCaption) {
+                  captionHTML = hiddenCaption.innerHTML;
+                }
+                el.innerHTML = captionHTML || "";
+              }
+            });
+          },
+        });
+      });
+      lightbox.init();
+    </script>
+  </body>
+</html>

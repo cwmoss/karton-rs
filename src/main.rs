@@ -1,4 +1,5 @@
 pub mod album;
+pub mod album_image;
 
 use axum::{
     Json, Router,
@@ -50,16 +51,7 @@ async fn main() {
         base_path: base.clone(),
     });
 
-    build_alben(&app_state.base_path);
-
-    // let base = "/Users/rw/dev/karton";
-    let name = "test";
-
-    let files = album::list_files(&app_state.base_path, name);
-
-    for file in files {
-        println!("{:?}", file);
-    }
+    // build_alben(&app_state.base_path);
 
     let serve_dir = ServeDir::new("public");
 
@@ -68,6 +60,9 @@ async fn main() {
         .route("/hello/{visitor}", get(greet_visitor))
         .route("/bye", delete(say_goodbye))
         .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
+        .route("/{album}/zip", get(download_zip))
+        .route("/{album}/{size}/{img}", get(resize_image2)) // big size route
+        .route("/{album}", get(show_album))
         .nest_service("/_assets", serve_dir.clone())
         .with_state(app_state);
 
@@ -98,6 +93,54 @@ async fn greet_visitor(
     Json(Greeting::new("Hello", visitor, visits))
 }
 
+async fn resize_image2(
+    State(app_state): State<Arc<AppState>>,
+    Path((album, size, img)): Path<(String, String, String)>,
+) -> impl axum::response::IntoResponse {
+    let sz = match size.as_str() {
+        "big" => album_image::get_size(album_image::Sizes::Big),
+        _ => album_image::get_size(album_image::Sizes::Small),
+    };
+    // format!("Resizing image: album={}, size={} x {}, img={}",album, sz.0, sz.1, img)
+
+    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+    album_image::resize_image(&app_state.base_path, &album, &img, sz)
+        .write_to(&mut buffer, ImageFormat::Png)
+        .unwrap();
+
+    let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner();
+
+    (
+        axum::response::AppendHeaders([(header::CONTENT_TYPE, "image/jpg")]),
+        bytes,
+    )
+}
+
+async fn download_zip(
+    State(app_state): State<Arc<AppState>>,
+    Path(album): Path<String>,
+) -> impl axum::response::IntoResponse {
+    match album::zip(&app_state.base_path, &album) {
+        Some(zip_data) => (
+            axum::response::AppendHeaders([
+                (header::CONTENT_TYPE, "application/zip"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"album.zip\"",
+                ),
+            ]),
+            zip_data,
+        ),
+        None => (
+            axum::response::AppendHeaders([
+                (header::CONTENT_TYPE, "text/html"),
+                (header::CONTENT_DISPOSITION, "inline"),
+            ]),
+            "Album not found".as_bytes().to_vec(),
+        ),
+    }
+}
+
 async fn resize_image(
     State(app_state): State<Arc<AppState>>,
     Path((album, size, img)): Path<(String, String, String)>,
@@ -116,6 +159,26 @@ async fn resize_image(
     )
 }
 
+async fn show_album(
+    State(app_state): State<Arc<AppState>>,
+    Path(album): Path<String>,
+) -> impl axum::response::IntoResponse {
+    // Json(album::load(&app_state.base_path, &album))
+    let album_data = album::load(&app_state.base_path, &album);
+    match album_data {
+        Some(album) => {
+            let html = album::render_index(&album);
+            (
+                axum::response::AppendHeaders([(header::CONTENT_TYPE, "text/html")]),
+                html,
+            )
+        }
+        None => (
+            axum::response::AppendHeaders([(header::CONTENT_TYPE, "text/html")]),
+            "Album not found".to_string(),
+        ),
+    }
+}
 /// Say goodbye to the visitor.
 async fn say_goodbye() -> String {
     "Goodbye".to_string()

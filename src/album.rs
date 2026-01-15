@@ -1,15 +1,34 @@
+use askama::Template;
 use image::DynamicImage;
 use image::GenericImageView;
 use image::ImageFormat;
 use image::ImageReader;
-use serde::{Deserialize, Serialize};
+use serde;
 use std::fs;
 use std::path::{Path, PathBuf};
+use zip::write::SimpleFileOptions;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Album {
     name: String,
     images: Vec<FileInfo>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct FileInfo {
+    fname: String,
+    name: String,
+    w: u32,
+    h: u32,
+    r#type: String,
+    mime: String,
+}
+
+pub fn load(base: &str, name: &str) -> Option<Album> {
+    let path = format!("{}/{}/.karton/index.json", base, name);
+    let data = fs::read_to_string(&path).ok()?;
+    let album: Album = serde_json::from_str(&data).ok()?;
+    Some(album)
 }
 
 pub fn list_files(base: &str, name: &str) -> Vec<FileInfo> {
@@ -31,6 +50,25 @@ pub fn list_files(base: &str, name: &str) -> Vec<FileInfo> {
     files.sort();
 
     files.into_iter().filter_map(|f| file_info(&f)).collect()
+}
+
+pub fn list_files_paths(base: &str, name: &str) -> Vec<PathBuf> {
+    let pattern = format!("{}/{}/", base, name);
+    print!("Listing files without info in pattern: {}\n", pattern);
+    let files: Vec<PathBuf> = fs::read_dir(&pattern)
+        .unwrap()
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.extension()?.to_str()? == "jpg" {
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    return files;
 }
 
 pub fn build_if_needed(base: &str, name: &str) -> Album {
@@ -58,16 +96,6 @@ pub fn build_if_needed(base: &str, name: &str) -> Album {
     print!("Album built: {:?}\n", j);
     fs::write(index, j).unwrap();
     album
-}
-
-#[derive(Debug, serde::Serialize)]
-pub struct FileInfo {
-    fname: String,
-    name: String,
-    w: u32,
-    h: u32,
-    r#type: String,
-    mime: String,
 }
 
 fn file_info(file: &Path) -> Option<FileInfo> {
@@ -115,4 +143,58 @@ pub fn resize_image(base: &str, album: &str, img: &str, size: &str) -> DynamicIm
 
     let resized_img = img.resize_to_fill(400, 150, image::imageops::FilterType::Lanczos3);
     return resized_img;
+}
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "index.html")]
+// using the template in this path, relative
+// to the `templates` dir in the crate root
+struct IndexTemplate<'a> {
+    // the name of the struct can be anything
+    name: &'a str, // the field name should match the variable name
+    // in your template
+    album: &'a str,
+    total: usize,
+}
+
+pub fn render_index(album: &Album) -> String {
+    let album_json = serde_json::to_string(&album).unwrap();
+    let template = IndexTemplate {
+        name: album.name.as_str(),
+        album: &album_json,
+        total: album.images.len(),
+    };
+    template.render().unwrap()
+}
+
+pub fn zip(base: &str, album: &str) -> Option<Vec<u8>> {
+    let album_path = format!("{}/{}", base, album);
+    let zip_path = format!("{}/{}/.karton/{}.zip", base, album, album);
+
+    let file = fs::File::create(&zip_path).ok()?;
+    let mut zip = zip::ZipWriter::new(file);
+
+    // let options = zip::write::FileOptions::default();
+
+    let files_to_compress: Vec<PathBuf> = list_files_paths(base, album);
+
+    // Iterate through the files and add them to the ZIP archive.
+    for file_path in &files_to_compress {
+        let file_name = file_path.file_name().unwrap().to_str().unwrap();
+        print!("Adding file to zip: {}\n", file_name);
+
+        let mut file = fs::File::open(file_path).ok()?;
+
+        // Adding the file to the ZIP archive.
+        zip.start_file(file_name, SimpleFileOptions::default())
+            .ok()?;
+
+        let _ = std::io::copy(&mut file, &mut zip);
+    }
+
+    zip.finish().ok()?;
+    print!("Closing ZIP file\n");
+
+    let zip_data = fs::read(&zip_path).ok()?;
+    Some(zip_data)
 }

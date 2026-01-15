@@ -4,10 +4,10 @@ import { BalancedMasonryGrid } from "./grid-vanilla.js";
 let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${
   it.w
 }; --height: ${it.h};">
-    <a href="/imagesize/${name}${it.big}" data-pswp-width="${
+    <a href="/${name}/big/${it.name}" data-pswp-width="${
   it.w
-}" data-pswp-height="${it.h}"><img src="/imagesize/${name}${
-  it.preview
+}" data-pswp-height="${it.h}"><img src="/${name}/thumb/${
+  it.name
 }" alt="photography" /></a>
     <figcaption>${it.name} ${it.w} x ${it.h}</figcaption>
 </figure>`;
@@ -27,7 +27,7 @@ class GalleryGrid extends HTMLElement {
   name = "";
 
   connectedCallback() {
-    this.data = JSON.parse(window.__load_data);
+    this.data = window.__load_data;
     this.name = this.data.name;
     console.log("GalleryGrid connected", this.data);
     this.render();
