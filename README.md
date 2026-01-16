@@ -2,12 +2,16 @@
 
 download from release page, unzip, move binary to a proper location
 
-## mac example
+## via install.sh
+
+    curl -fsSL https://raw.githubusercontent.com/cwmoss/karton-rs/refs/heads/main/install.sh | bash -s 
+
+## mac manual example
 
     # download to current folder
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-aarch64-apple-darwin.tar.xz -o ./karton.tar.xz
     # unzip
-    tar xfz karton.tar.xz
+    tar xJf karton.tar.xz
     # copy to system location
     cp karton-aarch64-apple-darwin/karton /usr/local/bin/
     # allow the file to be executable
@@ -15,15 +19,15 @@ download from release page, unzip, move binary to a proper location
     # remove downloaded file and archive folder
     rm -rf karton.tar.xz karton-aarch64-apple-darwin
 
-## linux example
+## linux manual example
 
     # download to current folder
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-unknown-linux-gnu.tar.xz -o ./karton.tar.xz
-    tar xfz karton.tar.xz
+    tar xJf karton.tar.xz
     cp karton-x86_64-unknown-linux-gnu/karton /usr/local/bin/
     rm -rf karton.tar.xz karton-x86_64-unknown-linux-gnu
 
-## windows example
+## windows manual example
 
     # TODO: I have no idea
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-pc-windows-msvc.zip -o ./karton.zip

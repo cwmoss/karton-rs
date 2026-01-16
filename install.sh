@@ -115,7 +115,7 @@ rm -f ${downloaded_file}
 curl --fail --location --output "${downloaded_file}" "${asset_uri}"
 
 echo "[2/3] Install ${exe_name} to the ${executable_folder}"
-tar -xz -f ${downloaded_file} -C ${downloadFolder}
+tar -xJ -f ${downloaded_file} -C ${downloadFolder}
 extracted="${file_name%.tar.xz}"
 echo "extracted file: ${extracted}"
 cp ${downloadFolder}/$extracted/${exe_name} ${executable_folder}/${exe_name}
@@ -125,7 +125,7 @@ chmod +x ${exe}
 echo "[3/3] Set environment variables"
 echo "${exe_name} was installed successfully to ${exe}"
 
-if "$os" = "apple-darwin" ; then
+if [ "$os" == "apple-darwin" ] ; then
     echo "On macOS, you might need to run the following command to allow execution of the binary:"
     echo "  xattr -dr com.apple.quarantine ${exe}"
 fi
