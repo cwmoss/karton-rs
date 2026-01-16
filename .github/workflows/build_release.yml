@@ -15,65 +15,65 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - target: x86_64-unknown-linux-musl
-          os: ubuntu-latest
-          cross: true
-        - target: aarch64-unknown-linux-musl
-          os: ubuntu-latest
-          cross: true
-        - target: armv7-unknown-linux-musleabi
-          os: ubuntu-latest
-          cross: true
-        - target: riscv64gc-unknown-linux-gnu
-          os: ubuntu-latest
-          cross: true
-        - target: x86_64-apple-darwin
-          os: macos-latest
-          cross: false
-        - target: aarch64-apple-darwin
-          os: macos-latest
-          cross: false
-        - target: x86_64-pc-windows-msvc
-          os: windows-latest
-          cross: false
-        - target: aarch64-pc-windows-msvc
-          os: windows-latest
-          cross: false
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            cross: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            cross: true
+          - target: armv7-unknown-linux-musleabi
+            os: ubuntu-latest
+            cross: true
+          - target: riscv64gc-unknown-linux-gnu
+            os: ubuntu-latest
+            cross: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            cross: false
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            cross: false
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            cross: false
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            cross: false
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        target: ${{ matrix.target }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          target: ${{ matrix.target }}
 
-    - name: Run Cross
-      if: ${{ matrix.cross }}
-      run: |
-        cargo install cross --git https://github.com/cross-rs/cross.git --locked --rev 085092ca
-        cross build --release --target ${{ matrix.target }} 
+      - name: Run Cross
+        if: ${{ matrix.cross }}
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross.git --locked --rev 085092ca
+          cross build --release --target ${{ matrix.target }}
 
-    - name: Run Cargo
-      if: ${{ !matrix.cross }}
-      run: cargo build --release --target ${{ matrix.target }} 
+      - name: Run Cargo
+        if: ${{ !matrix.cross }}
+        run: cargo build --release --target ${{ matrix.target }}
 
-    - name: create artifact directory
-      shell: bash
-      run: |
-        directory=karton-${{ matrix.target }}
-        mkdir $directory
-        cp README.md LICENSE NOTICE $directory
-        if [ -f target/${{ matrix.target }}/release/karton-rs.exe ]; then
-          cp target/${{ matrix.target }}/release/karton-rs.exe $directory/karton.exe
-          7z a -r $directory.zip $directory
-        else
-          cp target/${{ matrix.target }}/release/karton-rs $directory/karton
-          tar cJf $directory.tar.xz $directory
-        fi
+      - name: create artifact directory
+        shell: bash
+        run: |
+          directory=karton-${{ matrix.target }}
+          mkdir $directory
+          cp README.md $directory
+          if [ -f target/${{ matrix.target }}/release/karton-rs.exe ]; then
+            cp target/${{ matrix.target }}/release/karton-rs.exe $directory/karton.exe
+            7z a -r $directory.zip $directory
+          else
+            cp target/${{ matrix.target }}/release/karton-rs $directory/karton
+            tar cJf $directory.tar.xz $directory
+          fi
 
-    - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-      if: github.event_name == 'workflow_dispatch'
-      with:
-        name: karton-${{ matrix.target }}
-        path: "karton-${{ matrix.target }}.*"
-        retention-days: 3
-        overwrite: true
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: karton-${{ matrix.target }}
+          path: "karton-${{ matrix.target }}.*"
+          retention-days: 3
+          overwrite: true
