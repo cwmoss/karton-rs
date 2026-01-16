@@ -39,9 +39,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             cross: false
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            cross: false
+          # - target: aarch64-pc-windows-msvc
+          #  os: windows-latest
+          #  cross: false
 
     steps:
       - name: Checkout code
@@ -57,7 +57,9 @@ jobs:
 
       - name: Run Cargo
         if: ${{ !matrix.cross }}
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
 
       - name: create artifact directory
         shell: bash
@@ -65,18 +67,25 @@ jobs:
           directory=karton-${{ matrix.target }}
           mkdir $directory
           cp README.md $directory
-          if [ -f target/${{ matrix.target }}/release/karton-rs.exe ]; then
-            cp target/${{ matrix.target }}/release/karton-rs.exe $directory/karton.exe
+          if [ -f target/${{ matrix.target }}/release/karton.exe ]; then
+            cp target/${{ matrix.target }}/release/karton.exe $directory/
             7z a -r $directory.zip $directory
           else
-            cp target/${{ matrix.target }}/release/karton-rs $directory/karton
+            cp target/${{ matrix.target }}/release/karton $directory/
             tar cJf $directory.tar.xz $directory
           fi
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: github.event_name == 'workflow_dispatch'
+      #- uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      #  if: github.event_name == 'workflow_dispatch'
+      #  with:
+      #    name: karton-${{ matrix.target }}
+      #    path: "karton-${{ matrix.target }}.*"
+      #    retention-days: 3
+      #    overwrite: true
+
+      - name: Attach to release
+        uses: ncipollo/release-action@v1.12.0
         with:
-          name: karton-${{ matrix.target }}
-          path: "karton-${{ matrix.target }}.*"
-          retention-days: 3
-          overwrite: true
+          artifacts: "karton-${{ matrix.target }}.*"
+          tag: v0.1.0
+          allowUpdates: true

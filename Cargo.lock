@@ -875,7 +875,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "karton-rs"
+name = "karton"
 version = "0.1.0"
 dependencies = [
  "askama",
