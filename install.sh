@@ -120,7 +120,7 @@ extracted="${file_name%.tar.xz}"
 echo "extracted file: ${extracted}"
 chmod +x ${downloadFolder}/$extracted/${exe_name}
 
-if [ "$os" == "unknown-linux" ] ; then
+if [ "$os" == "unknown-linux-gnu" ] ; then
     sudo cp ${downloadFolder}/$extracted/${exe_name} ${executable_folder}/${exe_name}
 else
     cp ${downloadFolder}/$extracted/${exe_name} ${executable_folder}/${exe_name}
