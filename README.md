@@ -15,6 +15,22 @@ download from release page, unzip, move binary to a proper location
     # remove downloaded file and archive folder
     rm -rf karton.tar.xz karton-aarch64-apple-darwin
 
+## linux example
+
+    # download to current folder
+    curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-unknown-linux-gnu.tar.xz -o ./karton.tar.xz
+    tar xfz karton.tar.xz
+    cp karton-x86_64-unknown-linux-gnu/karton /usr/local/bin/
+    rm -rf karton.tar.xz karton-x86_64-unknown-linux-gnu
+
+## windows example
+
+    # TODO: I have no idea
+    curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-pc-windows-msvc.zip -o ./karton.zip
+    7z e karton.zip
+    cp karton-x86_64-pc-windows-msvc/karton /usr/local/bin/
+    rm -rf karton.zip karton-x86_64-pc-windows-msvc
+
 ## run
 
     # A
