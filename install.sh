@@ -118,9 +118,16 @@ echo "[2/3] Install ${exe_name} to the ${executable_folder}"
 tar -xJ -f ${downloaded_file} -C ${downloadFolder}
 extracted="${file_name%.tar.xz}"
 echo "extracted file: ${extracted}"
-cp ${downloadFolder}/$extracted/${exe_name} ${executable_folder}/${exe_name}
+chmod +x ${downloadFolder}/$extracted/${exe_name}
+
+if [ "$os" == "unknown-linux" ] ; then
+    sudo cp ${downloadFolder}/$extracted/${exe_name} ${executable_folder}/${exe_name}
+else
+    cp ${downloadFolder}/$extracted/${exe_name} ${executable_folder}/${exe_name}
+fi
+
 exe=${executable_folder}/${exe_name}
-chmod +x ${exe}
+
 
 echo "[3/3] Set environment variables"
 echo "${exe_name} was installed successfully to ${exe}"
