@@ -70,7 +70,7 @@ async fn main() {
 
     // let base_path = StdPath::new(&app_state.base_path);
     // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
-    // build_alben(&app_state.base_path);
+    build_alben(&app_state.base_path, &app_state.single_album);
 
     // let serve_dir = ServeDir::new("public");
     // let serve_assets = ServeEmbed::<Assets>::new();
@@ -245,21 +245,24 @@ fn get_args() -> (String,) {
     )
 }
 
-fn build_alben(base: &str) {
+fn build_alben(base: &str, single_album: &str) {
     let pattern = format!("{}/", base);
     print!("Building albums in pattern: {}\n", pattern);
-    let albums: Vec<String> = std::fs::read_dir(&pattern)
-        .unwrap()
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            if path.is_dir() {
-                Some(path.file_name()?.to_string_lossy().to_string())
-            } else {
-                None
-            }
-        })
-        .collect();
+    let albums: Vec<String> = match single_album {
+        "" => std::fs::read_dir(&pattern)
+            .unwrap()
+            .filter_map(|entry| {
+                let entry = entry.ok()?;
+                let path = entry.path();
+                if path.is_dir() {
+                    Some(path.file_name()?.to_string_lossy().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect(),
+        _ => vec![single_album.to_string()],
+    };
 
     for album in albums {
         print!("Found album: {}\n", album);
