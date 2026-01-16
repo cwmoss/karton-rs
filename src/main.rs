@@ -147,6 +147,7 @@ async fn resize_image2(
 
     let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
     album_image::resize_image(&app_state.base_path, &album, &img, sz)
+        .unwrap()
         .write_to(&mut buffer, ImageFormat::Png)
         .unwrap();
 
@@ -313,7 +314,7 @@ fn check_if_base_contains_jpgs(base: &str) -> String {
         .filter_map(|entry| {
             let entry = entry.ok()?;
             let path = entry.path();
-            if path.extension()?.to_str()? == "jpg" {
+            if path.extension()?.to_str()? == "jpg" || path.extension()?.to_str()? == "jpeg" {
                 Some(path)
             } else {
                 None

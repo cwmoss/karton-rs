@@ -23,7 +23,7 @@ pub fn get_size(size: Sizes) -> Size {
     }
 }
 
-pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> DynamicImage {
+pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {
     // Placeholder implementation
     let file = format!("{}/{}/{}", base, album, img);
     let (width, height) = (size.0, size.1);
@@ -32,10 +32,17 @@ pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> DynamicIm
         img, album, size.0, file
     );
 
-    let img = image::open(&file).unwrap();
+    // let img = image::open(&file).unwrap();
     // let img = ImageReader::open(file).ok()?.with_guessed_format().ok()?;
-    let resized_img = img.resize(width, height, image::imageops::FilterType::Lanczos3);
+    let resized_img = ImageReader::open(file)
+        .ok()?
+        .with_guessed_format()
+        .ok()?
+        .decode()
+        .ok()?
+        .resize(width, height, image::imageops::FilterType::Lanczos3);
+    // let resized_img = img.resize(width, height, image::imageops::FilterType::Lanczos3);
 
     // let resized_img = img.resize_to_fill(400, 150, image::imageops::FilterType::Lanczos3);
-    return resized_img;
+    return Some(resized_img);
 }

@@ -39,7 +39,7 @@ pub fn list_files(base: &str, name: &str) -> Vec<FileInfo> {
         .filter_map(|entry| {
             let entry = entry.ok()?;
             let path = entry.path();
-            if path.extension()?.to_str()? == "jpg" {
+            if path.extension()?.to_str()? == "jpg" || path.extension()?.to_str()? == "jpeg" {
                 Some(path)
             } else {
                 None
@@ -60,7 +60,7 @@ pub fn list_files_paths(base: &str, name: &str) -> Vec<PathBuf> {
         .filter_map(|entry| {
             let entry = entry.ok()?;
             let path = entry.path();
-            if path.extension()?.to_str()? == "jpg" {
+            if path.extension()?.to_str()? == "jpg" || path.extension()?.to_str()? == "jpeg" {
                 Some(path)
             } else {
                 None
