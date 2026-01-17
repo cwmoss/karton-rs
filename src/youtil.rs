@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 pub fn list_files(base: &str, name: &str, filtered_extensions: &Vec<String>) -> Vec<PathBuf> {
     let pattern = format!("{}/{}/", base, name);
-    print!("Listing files in pattern: {}\n", pattern);
+    // print!("Listing files in pattern: {}\n", pattern);
     fs::read_dir(&pattern)
         .unwrap()
         .filter_map(|entry| {

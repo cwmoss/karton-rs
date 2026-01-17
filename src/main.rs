@@ -1,5 +1,6 @@
 pub mod album;
 pub mod album_image;
+pub mod store;
 pub mod youtil;
 
 use axum::{
@@ -28,6 +29,7 @@ use tower_http::{
 use crate::youtil::list_dirs;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use directories::BaseDirs;
 
 /// Karton serves your photo albums over HTTP.
 #[derive(Parser, Debug)]
@@ -37,6 +39,11 @@ struct Cli {
     /// uses current directory or KARTON_BASE env var
     #[arg(short, long, default_value_t=get_default_base_path(), verbatim_doc_comment)]
     base: String,
+
+    /// Base path to store, if not set,
+    /// uses home directory/.karton  or KARTON_STORE env var
+    #[arg(long, default_value_t=get_default_store_path(), verbatim_doc_comment)]
+    store: String,
 
     /// Comma-separated list of filtered
     /// extensions (e.g., "jpg,jpeg,png")
@@ -66,27 +73,32 @@ struct AppState {
     base_path: String,
     single_album: String,
     filtered_extensions: Vec<String>,
+    store: store::Store,
 }
 
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
 
-    let mut base = args.base;
+    let path = StdPath::new(&args.base);
+    let mut base = path.canonicalize().unwrap().to_string_lossy().to_string();
 
     let single_album = check_if_base_contains_jpgs(&base);
 
     if single_album == "" {
         print!("* Multi-album mode: {}/*/\n", base);
     } else {
-        print!("* Single-album mode: {}\n", base);
+        base = path.parent().unwrap().to_string_lossy().to_string();
+        print!("* Single-album mode: {}/{}\n", base, single_album);
     }
 
-    if single_album != "" {
-        base = format!("{}/../", base);
-    }
+    print!("Using store path: {}\n", args.store);
 
-    let mut hostport = String::from("");
+    //if single_album != "" {
+    //    base = format!("{}/../", base);
+    //}
+
+    let hostport;
 
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
     // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
@@ -95,24 +107,28 @@ async fn main() {
         base_path: base.clone(),
         single_album: single_album,
         filtered_extensions: args.extensions.split(',').map(|s| s.to_string()).collect(),
+        store: store::Store::new(&args.store),
     });
 
     match args.command {
         Commands::Scan {} => {
             print!("Scanning for albums\n");
-            build_alben(
+            album::build_alben(
                 &app_state.base_path,
                 &app_state.single_album,
                 &app_state.filtered_extensions,
+                &app_state.store,
             );
+            return;
         }
         Commands::Serve { host, port } => {
             print!("Serving albums\n");
             hostport = format!("{}:{}", host, port).to_string();
-            build_alben(
+            album::build_alben(
                 &app_state.base_path,
                 &app_state.single_album,
                 &app_state.filtered_extensions,
+                &app_state.store,
             );
         }
     }
@@ -223,7 +239,7 @@ async fn show_album(
     Path(album): Path<String>,
 ) -> impl axum::response::IntoResponse {
     // Json(album::load(&app_state.base_path, &album))
-    let album_data = album::load(&app_state.base_path, &album);
+    let album_data = album::load(&app_state.base_path, &album, &app_state.store);
     match album_data {
         Some(album) => {
             let html = album::render_index(&album);
@@ -239,27 +255,25 @@ async fn show_album(
     }
 }
 
+fn get_default_store_path() -> String {
+    match env::var("KARTON_STORE") {
+        Ok(env_base) => env_base,
+        Err(_) => {
+            let base_dirs = BaseDirs::new().unwrap();
+            let home_dir = base_dirs.home_dir();
+            let store_path = home_dir.join(".karton");
+            store_path.to_string_lossy().to_string()
+        }
+    }
+    // if let Ok(env_base) = env::var("KARTON_BASE")
+}
+
 fn get_default_base_path() -> String {
     match env::var("KARTON_BASE") {
         Ok(env_base) => env_base,
         Err(_) => env::current_dir().unwrap().to_string_lossy().to_string(),
     }
     // if let Ok(env_base) = env::var("KARTON_BASE")
-}
-
-// path.file_name()?.to_string_lossy().to_string()
-fn build_alben(base: &str, single_album: &str, filtered_extensions: &Vec<String>) {
-    let pattern = format!("{}/", base);
-    print!("Building albums in pattern: {}\n", pattern);
-    let albums: Vec<String> = match single_album {
-        "" => list_dirs(base),
-        _ => vec![single_album.to_string()],
-    };
-
-    for album in albums {
-        print!("Found album: {}\n", album);
-        album::build_if_needed(base, &album, filtered_extensions);
-    }
 }
 
 // We use a wildcard matcher ("/dist/*file") to match against everything

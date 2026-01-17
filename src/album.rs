@@ -1,4 +1,6 @@
-use super::youtil::list_files;
+use super::store::Store;
+
+use super::youtil::{list_dirs, list_files};
 use askama::Template;
 use image::DynamicImage;
 use image::GenericImageView;
@@ -6,6 +8,7 @@ use image::ImageFormat;
 use image::ImageReader;
 use serde;
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use zip::write::SimpleFileOptions;
 
@@ -25,11 +28,33 @@ pub struct FileInfo {
     mime: String,
 }
 
-pub fn load(base: &str, name: &str) -> Option<Album> {
-    let path = format!("{}/{}/.karton/index.json", base, name);
-    let data = fs::read_to_string(&path).ok()?;
-    let album: Album = serde_json::from_str(&data).ok()?;
-    Some(album)
+// path.file_name()?.to_string_lossy().to_string()
+pub fn build_alben(
+    base: &str,
+    single_album: &str,
+    filtered_extensions: &Vec<String>,
+    store: &Store,
+) {
+    let albums: Vec<String> = match single_album {
+        "" => list_dirs(base),
+        _ => vec![single_album.to_string()],
+    };
+
+    for album in albums {
+        print!("... check album: {} ", album);
+        io::stdout().flush().unwrap();
+        build_if_needed(base, &album, filtered_extensions, store);
+    }
+}
+
+pub fn load(base: &str, name: &str, store: &Store) -> Option<Album> {
+    let path = format!("{}/{}", base, name);
+    // let data = fs::read_to_string(&path).ok()?;
+    //
+    match store.get_album_index(path.clone()) {
+        Some(data) => serde_json::from_str(&data).ok().unwrap(),
+        None => None,
+    }
 }
 
 pub fn list_files_with_info(
@@ -43,7 +68,36 @@ pub fn list_files_with_info(
         .collect()
 }
 
-pub fn build_if_needed(base: &str, name: &str, filtered_extensions: &Vec<String>) -> Album {
+pub fn build_if_needed(
+    base: &str,
+    name: &str,
+    filtered_extensions: &Vec<String>,
+    store: &Store,
+) -> Album {
+    let path = format!("{}/{}", base, name);
+    // let index = format!("{}index.json", path);
+    // let cache = format!("{}cache/", path);
+
+    match store.get_album_index(path.clone()) {
+        Some(data) => {
+            print!("CACHED\n");
+            serde_json::from_str(&data).ok().unwrap()
+        }
+        None => {
+            let album = Album {
+                name: name.to_string(),
+                images: list_files_with_info(base, name, filtered_extensions),
+            };
+            let data = serde_json::to_string(&album).unwrap();
+            print!("BUILT with {} images\n", album.images.len());
+            store.save_album_index(&path, &data);
+
+            album
+        }
+    }
+}
+
+pub fn build_if_needed0(base: &str, name: &str, filtered_extensions: &Vec<String>) -> Album {
     let path = format!("{}/{}/.karton/", base, name);
     let index = format!("{}index.json", path);
     let cache = format!("{}cache/", path);

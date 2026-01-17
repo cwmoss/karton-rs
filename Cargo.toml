@@ -7,7 +7,9 @@ edition = "2024"
 askama = "0.15.1"
 axum = "0.8.8"
 clap = { version = "4.5.54", features = ["derive"] }
+directories = "6.0.0"
 image = "0.25.9"
+md5 = "0.8.0"
 mime_guess = "2.0.5"
 rust-embed = { version = "8.11.0", features = ["axum-ex"] }
 serde = { version = "1.0.228", features = ["derive"] }
