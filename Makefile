@@ -1,5 +1,7 @@
-all: bin/karton
+all: target/release/karton
 
-bin/karton: src/main.rs
+target/release/karton: src/main.rs
 	cargo build --release
-	cp target/release/karton-rs bin/karton
+	cp target/release/karton /usr/local/bin/karton
+	ls -alh ./target/release/karton
+	ls -al ./target/release/karton

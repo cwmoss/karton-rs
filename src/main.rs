@@ -1,5 +1,6 @@
 pub mod album;
 pub mod album_image;
+pub mod youtil;
 
 use axum::{
     Json, Router,
@@ -9,68 +10,115 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
     routing::{delete, get},
 };
-use env;
+
 use image::ImageFormat;
 use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
 // use std::borrow::Cow;
+use std::env;
 use std::io::{BufWriter, Cursor};
 use std::path::Path as StdPath;
 use std::path::PathBuf;
 use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
-
 use tower_http::{
     services::{ServeDir, ServeFile},
     // trace::TraceLayer,
 };
 
-#[derive(Serialize, Deserialize)]
-struct Greeting {
-    greeting: String,
-    visitor: String,
-    visits: u16,
+use crate::youtil::list_dirs;
+
+use clap::{Args, Parser, Subcommand, ValueEnum};
+
+/// Karton serves your photo albums over HTTP.
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Base path to albums, if not set,
+    /// uses current directory or KARTON_BASE env var
+    #[arg(short, long, default_value_t=get_default_base_path(), verbatim_doc_comment)]
+    base: String,
+
+    /// Comma-separated list of filtered
+    /// extensions (e.g., "jpg,jpeg,png")
+    #[arg(long, default_value_t = String::from("jpg,jpeg"), verbatim_doc_comment)]
+    extensions: String,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Debug, Subcommand, Eq, PartialEq)]
+enum Commands {
+    /// Start the Karton web server
+    Serve {
+        /// Host to bind to
+        #[arg(long, default_value_t = String::from("0.0.0.0"))]
+        host: String,
+
+        #[arg(long, default_value_t = 5000)]
+        port: u16,
+    },
+    /// Scan for albums and build caches
+    Scan {},
 }
 
 struct AppState {
-    number_of_visits: AtomicU16,
     base_path: String,
     single_album: String,
-}
-
-impl Greeting {
-    fn new(greeting: &str, visitor: String, visits: u16) -> Self {
-        Greeting {
-            greeting: greeting.to_string(),
-            visitor,
-            visits,
-        }
-    }
+    filtered_extensions: Vec<String>,
 }
 
 #[tokio::main]
 async fn main() {
-    let (mut base,) = get_args();
+    let args = Cli::parse();
+
+    let mut base = args.base;
 
     let single_album = check_if_base_contains_jpgs(&base);
 
-    print!("* Single album mode: '{}'\n", single_album);
+    if single_album == "" {
+        print!("* Multi-album mode: {}/*/\n", base);
+    } else {
+        print!("* Single-album mode: {}\n", base);
+    }
 
     if single_album != "" {
         base = format!("{}/../", base);
     }
 
+    let mut hostport = String::from("");
+
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
     // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
     // not the state itself. The AtomicU16 is a thread-safe integer that we use to keep track of the number of visits.
     let app_state = Arc::new(AppState {
-        number_of_visits: AtomicU16::new(1),
         base_path: base.clone(),
         single_album: single_album,
+        filtered_extensions: args.extensions.split(',').map(|s| s.to_string()).collect(),
     });
+
+    match args.command {
+        Commands::Scan {} => {
+            print!("Scanning for albums\n");
+            build_alben(
+                &app_state.base_path,
+                &app_state.single_album,
+                &app_state.filtered_extensions,
+            );
+        }
+        Commands::Serve { host, port } => {
+            print!("Serving albums\n");
+            hostport = format!("{}:{}", host, port).to_string();
+            build_alben(
+                &app_state.base_path,
+                &app_state.single_album,
+                &app_state.filtered_extensions,
+            );
+        }
+    }
 
     // let base_path = StdPath::new(&app_state.base_path);
     // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
-    build_alben(&app_state.base_path, &app_state.single_album);
 
     // let serve_dir = ServeDir::new("public");
     // let serve_assets = ServeEmbed::<Assets>::new();
@@ -80,9 +128,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(if_single_album_redirect))
-        .route("/hello/{visitor}", get(greet_visitor))
-        .route("/bye", delete(say_goodbye))
-        .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
+        // .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
         .route("/{album}/zip", get(download_zip))
         .route("/{album}/{size}/{img}", get(resize_image2)) // big size route
         .route("/{album}", get(show_album))
@@ -101,31 +147,15 @@ async fn main() {
         }
     */
     // start the server on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(hostport.clone())
+        .await
+        .unwrap();
 
-    println!("Listening on http://0.0.0.0:3000");
+    println!("Listening on http://{}", hostport);
+
     axum::serve(listener, app).await.unwrap();
 }
-/*
 
-$router->get('/imagesize/([-\w]+)/(\w+)/([-\w]+\.jpg)', function ($name, $size, $img) use ($gallery) {
-    check_login($name);
-    dbg("+++ resize", $name, $size, $img);
-    $gallery->load($name);
-    $gallery->image_resize($name, $img, $size);
-});
-
-*/
-/// Extract the `visitor` path parameter and use it to greet the visitor.
-/// We also use the `State` extractor to access the shared `AppState` and increment the number of visits.
-/// We use `Json` to automatically serialize the `Greeting` struct to JSON.
-async fn greet_visitor(
-    State(app_state): State<Arc<AppState>>,
-    Path(visitor): Path<String>,
-) -> Json<Greeting> {
-    let visits = app_state.number_of_visits.fetch_add(1, Relaxed);
-    Json(Greeting::new("Hello", visitor, visits))
-}
 async fn if_single_album_redirect(
     State(app_state): State<Arc<AppState>>,
 ) -> impl axum::response::IntoResponse {
@@ -163,8 +193,8 @@ async fn download_zip(
     State(app_state): State<Arc<AppState>>,
     Path(album): Path<String>,
 ) -> impl axum::response::IntoResponse {
-    let dispo = format!("attachment; filename=\"{}.zip\"", album);
-    match album::zip(&app_state.base_path, &album) {
+    // let dispo = format!("attachment; filename=\"{}.zip\"", album);
+    match album::zip(&app_state.base_path, &album, &app_state.filtered_extensions) {
         Some(zip_data) => {
             (
                 axum::response::AppendHeaders([
@@ -188,24 +218,6 @@ async fn download_zip(
     }
 }
 
-async fn resize_image(
-    State(app_state): State<Arc<AppState>>,
-    Path((album, size, img)): Path<(String, String, String)>,
-) -> impl axum::response::IntoResponse {
-    // album::resize_image(&album, &img, &size)
-    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
-    album::resize_image(&app_state.base_path, &album, &img, &size)
-        .write_to(&mut buffer, ImageFormat::Png)
-        .unwrap();
-
-    let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner();
-
-    (
-        axum::response::AppendHeaders([(header::CONTENT_TYPE, "image/jpg")]),
-        bytes,
-    )
-}
-
 async fn show_album(
     State(app_state): State<Arc<AppState>>,
     Path(album): Path<String>,
@@ -226,48 +238,27 @@ async fn show_album(
         ),
     }
 }
-/// Say goodbye to the visitor.
-async fn say_goodbye() -> String {
-    "Goodbye".to_string()
+
+fn get_default_base_path() -> String {
+    match env::var("KARTON_BASE") {
+        Ok(env_base) => env_base,
+        Err(_) => env::current_dir().unwrap().to_string_lossy().to_string(),
+    }
+    // if let Ok(env_base) = env::var("KARTON_BASE")
 }
 
-fn get_args() -> (String,) {
-    let args = std::env::args().collect::<Vec<String>>();
-    /*if args.len() != 7 {
-        eprintln!("Usage: {} INFILE OUTFILE X Y WIDTH HEIGHT", args[0]);
-        std::process::exit(1);
-    }*/
-    (
-        // args[1].to_owned()
-        args.get(1)
-            .unwrap_or(&env::current_dir().unwrap().to_string_lossy().to_string())
-            .to_owned(),
-        // args[6].parse().unwrap(),
-    )
-}
-
-fn build_alben(base: &str, single_album: &str) {
+// path.file_name()?.to_string_lossy().to_string()
+fn build_alben(base: &str, single_album: &str, filtered_extensions: &Vec<String>) {
     let pattern = format!("{}/", base);
     print!("Building albums in pattern: {}\n", pattern);
     let albums: Vec<String> = match single_album {
-        "" => std::fs::read_dir(&pattern)
-            .unwrap()
-            .filter_map(|entry| {
-                let entry = entry.ok()?;
-                let path = entry.path();
-                if path.is_dir() {
-                    Some(path.file_name()?.to_string_lossy().to_string())
-                } else {
-                    None
-                }
-            })
-            .collect(),
+        "" => list_dirs(base),
         _ => vec![single_album.to_string()],
     };
 
     for album in albums {
         print!("Found album: {}\n", album);
-        album::build_if_needed(base, &album);
+        album::build_if_needed(base, &album, filtered_extensions);
     }
 }
 
