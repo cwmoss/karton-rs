@@ -1,11 +1,14 @@
 import { BalancedMasonryGrid } from "./grid-vanilla.js";
 // "https://cdn.skypack.dev/@masonry-grid/vanilla";
 
-let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${it.w
-  }; --height: ${it.h};"><div>
-    <a href="/${name}/big/${it.name}" data-pswp-width="${it.w
-  }" data-pswp-height="${it.h}"><img src="/${name}/thumb/${it.name
-  }" alt="photography" loading="lazy"/></a>
+let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${
+  it.w
+}; --height: ${it.h};"><div>
+    <a href="./${name}/big/${it.name}" data-pswp-width="${
+      it.w
+    }" data-pswp-height="${it.h}"><img src="./${name}/thumb/${
+      it.name
+    }" alt="photography" loading="lazy"/></a>
     <figcaption>${it.name} ${it.w} x ${it.h}</figcaption>
 </div></figure>`;
 

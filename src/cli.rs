@@ -23,6 +23,10 @@ pub struct Cli {
     #[arg(long, default_value_t = String::from("jpg,jpeg"), verbatim_doc_comment)]
     pub extensions: String,
 
+    /// Prefix for subpath support
+    #[arg(long, default_value_t = String::from("/"))]
+    pub prefix: String,
+
     #[command(subcommand)]
     pub command: Commands,
 }

@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <base href="{{prefix}}" />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/_assets/favicon-32x32.png"
+      href="_assets/favicon-32x32.png"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content="Karton" />
@@ -19,22 +20,22 @@
     <script
       type="module"
       crossorigin
-      src="/_assets/js/gallery-grid.js"
+      src="./_assets/js/gallery-grid.js"
     ></script>
-    <link rel="stylesheet" href="/_assets/css/karton.css" />
-    <link rel="stylesheet" href="/_assets/photoswipe/photoswipe.css" />
+    <link rel="stylesheet" href="./_assets/css/karton.css" />
+    <link rel="stylesheet" href="./_assets/photoswipe/photoswipe.css" />
   </head>
 
   <body>
     <header>
       <h1>{{name}}</h1>
-      <h2>{{total}} images <a href="/{{name}}/zip">download all as zip</a></h2>
+      <h2>{{total}} images <a href="./{{name}}/zip">download all as zip</a></h2>
     </header>
     <gallery-grid></gallery-grid>
 
     <script type="module">
-      import Lightbox from "/_assets/photoswipe/photoswipe-lightbox.esm.min.js";
-      import PhotoSwipe from "/_assets/photoswipe/photoswipe.esm.min.js";
+      import Lightbox from "./_assets/photoswipe/photoswipe-lightbox.esm.min.js";
+      import PhotoSwipe from "./_assets/photoswipe/photoswipe.esm.min.js";
 
       const lightbox = new Lightbox({
         gallery: "gallery-grid",

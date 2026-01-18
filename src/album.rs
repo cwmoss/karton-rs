@@ -169,14 +169,16 @@ struct IndexTemplate<'a> {
     // in your template
     album: &'a str,
     total: usize,
+    prefix: &'a str,
 }
 
-pub fn render_index(album: &Album) -> String {
+pub fn render_index(album: &Album, prefix: &str) -> String {
     let album_json = serde_json::to_string(&album).unwrap();
     let template = IndexTemplate {
         name: album.name.as_str(),
         album: &album_json,
         total: album.images.len(),
+        prefix: prefix,
     };
     template.render().unwrap()
 }
@@ -211,7 +213,7 @@ pub fn zip(base: &str, album: &str, filtered_extensions: &Vec<String>) -> Option
     }
 
     zip.finish().ok()?;
-    print!("Closing ZIP file\n");
+    print!("Closing ZIP file {zip_path:?}\n");
 
     let zip_data = fs::read(&zip_path).ok()?;
     Some(zip_data)

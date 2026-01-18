@@ -31,6 +31,7 @@ use tower_http::{
 
 struct AppState {
     base_path: String,
+    prefix: String,
     single_album: String,
     filtered_extensions: Vec<String>,
     store: store::Store,
@@ -41,6 +42,7 @@ async fn main() {
     let (args, base, single_album) = cli::get_cli_args_and_setup();
 
     let hostport;
+    let http_prefix = format!("{}/", args.prefix.trim_end_matches('/'));
 
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
     // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
@@ -50,6 +52,7 @@ async fn main() {
         single_album: single_album,
         filtered_extensions: args.extensions.split(',').map(|s| s.to_string()).collect(),
         store: store::Store::new(&args.store),
+        prefix: http_prefix.clone(),
     });
 
     match args.command {
@@ -75,6 +78,10 @@ async fn main() {
         }
     }
 
+    if &app_state.prefix != "/" {
+        println!("Prefix: {}", &app_state.prefix);
+    }
+
     // let base_path = StdPath::new(&app_state.base_path);
     // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
 
@@ -84,7 +91,7 @@ async fn main() {
     // setup our application with "hello world" route at "/
     // let mut app = Router::new(); Router<Arc<AppState>>
 
-    let app = Router::new()
+    let router = Router::new()
         .route("/", get(if_single_album_redirect))
         // .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
         .route("/{album}/zip", get(download_zip))
@@ -96,6 +103,14 @@ async fn main() {
         .with_state(app_state)
         .fallback_service(get(not_found));
 
+    // let prefixed_router = Router::new().nest(&http_prefix, app);
+
+    // cfg.prefix.unwrap_or("/")
+    let router = match String::from(http_prefix).as_str() {
+        "/" | "" => router,
+        http_prefix => Router::new().nest(&http_prefix, router),
+    };
+
     // start the server on port 3000
     let listener = tokio::net::TcpListener::bind(hostport.clone())
         .await
@@ -103,14 +118,15 @@ async fn main() {
 
     println!("Listening on http://{}", hostport);
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, router).await.unwrap();
 }
 
 async fn if_single_album_redirect(
     State(app_state): State<Arc<AppState>>,
 ) -> impl axum::response::IntoResponse {
     if app_state.single_album != "" {
-        Redirect::permanent(&format!("/{}", app_state.single_album)).into_response()
+        Redirect::permanent(&format!("{}{}", app_state.prefix, app_state.single_album))
+            .into_response()
     } else {
         Html("hello, my name is karton").into_response()
     }
@@ -186,7 +202,7 @@ async fn show_album(
     let album_data = album::load(&app_state.base_path, &album, &app_state.store);
     match album_data {
         Some(album) => {
-            let html = album::render_index(&album);
+            let html = album::render_index(&album, &app_state.prefix);
             ([(header::CONTENT_TYPE, "text/html")], html)
         }
         None => (
