@@ -187,13 +187,10 @@ async fn show_album(
     match album_data {
         Some(album) => {
             let html = album::render_index(&album);
-            (
-                axum::response::AppendHeaders([(header::CONTENT_TYPE, "text/html")]),
-                html,
-            )
+            ([(header::CONTENT_TYPE, "text/html")], html)
         }
         None => (
-            axum::response::AppendHeaders([(header::CONTENT_TYPE, "text/html")]),
+            [(header::CONTENT_TYPE, "text/html")],
             "Album not found".to_string(),
         ),
     }
