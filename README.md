@@ -40,8 +40,11 @@ download from release page, unzip, move binary to a proper location
 
     # A
     # cd in a directory with jpg files
-    karton
+    karton serve
 
     # B
     # give karton the jpg root
-    karton /path/to/images
+    karton -b /path/to/images serve
+
+    # see all options
+    karton -h
