@@ -183,9 +183,11 @@ pub fn render_index(album: &Album) -> String {
 
 pub fn zip(base: &str, album: &str, filtered_extensions: &Vec<String>) -> Option<Vec<u8>> {
     // let album_path = format!("{}/{}", base, album);
-    let zip_path = format!("{}/{}/.karton/{}.zip", base, album, album);
-
+    // let zip_path = format!("{}/{}/.karton/{}.zip", base, album, album);
+    let temp_file = temp_file::TempFile::with_suffix(".zip").unwrap();
+    let zip_path = temp_file.path();
     let file = fs::File::create(&zip_path).ok()?;
+    // let file = temp_file::empty();
     let mut zip = zip::ZipWriter::new(file);
 
     // let options = zip::write::FileOptions::default();
