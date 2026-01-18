@@ -17,7 +17,7 @@ use image::ImageFormat;
 use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
 // use std::borrow::Cow;
-use std::env;
+
 use std::io::{BufWriter, Cursor};
 use std::path::Path as StdPath;
 use std::path::PathBuf;
@@ -26,47 +26,6 @@ use tower_http::{
     services::{ServeDir, ServeFile},
     // trace::TraceLayer,
 };
-
-use clap::{Args, Parser, Subcommand, ValueEnum};
-use directories::BaseDirs;
-
-/// Karton serves your photo albums over HTTP.
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Cli {
-    /// Base path to albums, if not set,
-    /// uses current directory or KARTON_BASE env var
-    #[arg(short, long, default_value_t=get_default_base_path(), verbatim_doc_comment)]
-    base: String,
-
-    /// Base path to store, if not set,
-    /// uses home directory/.karton  or KARTON_STORE env var
-    #[arg(long, default_value_t=get_default_store_path(), verbatim_doc_comment)]
-    store: String,
-
-    /// Comma-separated list of filtered
-    /// extensions (e.g., "jpg,jpeg,png")
-    #[arg(long, default_value_t = String::from("jpg,jpeg"), verbatim_doc_comment)]
-    extensions: String,
-
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Debug, Subcommand, Eq, PartialEq)]
-enum Commands {
-    /// Start the Karton web server
-    Serve {
-        /// Host to bind to
-        #[arg(long, default_value_t = String::from("0.0.0.0"))]
-        host: String,
-
-        #[arg(long, default_value_t = 5000)]
-        port: u16,
-    },
-    /// Scan for albums and build caches
-    Scan {},
-}
 
 struct AppState {
     base_path: String,
@@ -77,25 +36,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    let args = Cli::parse();
-
-    let path = StdPath::new(&args.base);
-    let mut base = path.canonicalize().unwrap().to_string_lossy().to_string();
-
-    let single_album = check_if_base_contains_jpgs(&base);
-
-    if single_album == "" {
-        print!("* Multi-album mode: {}/*/\n", base);
-    } else {
-        base = path.parent().unwrap().to_string_lossy().to_string();
-        print!("* Single-album mode: {}/{}\n", base, single_album);
-    }
-
-    print!("Using store path: {}\n", args.store);
-
-    //if single_album != "" {
-    //    base = format!("{}/../", base);
-    //}
+    let (args, base, single_album) = cli::get_cli_args_and_setup();
 
     let hostport;
 
@@ -110,7 +51,7 @@ async fn main() {
     });
 
     match args.command {
-        Commands::Scan {} => {
+        cli::Commands::Scan {} => {
             print!("Scanning for albums\n");
             album::build_alben(
                 &app_state.base_path,
@@ -120,7 +61,7 @@ async fn main() {
             );
             return;
         }
-        Commands::Serve { host, port } => {
+        cli::Commands::Serve { host, port } => {
             print!("Serving albums\n");
             hostport = format!("{}:{}", host, port).to_string();
             album::build_alben(
@@ -152,15 +93,7 @@ async fn main() {
         // .nest_service("/_assets", serve_assets.clone())
         .with_state(app_state)
         .fallback_service(get(not_found));
-    /*
-        if app_state.single_album != "" {
-            app_state.base_path = format!("{}/../", app_state.base_path);
-            app = app.route(
-                "/",
-                get(|| async { Redirect::permanent(&format!("/{}", app_state.single_album)) }),
-            );
-        }
-    */
+
     // start the server on port 3000
     let listener = tokio::net::TcpListener::bind(hostport.clone())
         .await
@@ -246,27 +179,6 @@ async fn show_album(
     }
 }
 
-fn get_default_store_path() -> String {
-    match env::var("KARTON_STORE") {
-        Ok(env_base) => env_base,
-        Err(_) => {
-            let base_dirs = BaseDirs::new().unwrap();
-            let home_dir = base_dirs.home_dir();
-            let store_path = home_dir.join(".karton");
-            store_path.to_string_lossy().to_string()
-        }
-    }
-    // if let Ok(env_base) = env::var("KARTON_BASE")
-}
-
-fn get_default_base_path() -> String {
-    match env::var("KARTON_BASE") {
-        Ok(env_base) => env_base,
-        Err(_) => env::current_dir().unwrap().to_string_lossy().to_string(),
-    }
-    // if let Ok(env_base) = env::var("KARTON_BASE")
-}
-
 // We use a wildcard matcher ("/dist/*file") to match against everything
 // within our defined assets directory. This is the directory on our Asset
 // struct below, where folder = "examples/public/".
@@ -299,32 +211,5 @@ where
             }
             None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
         }
-    }
-}
-
-fn check_if_base_contains_jpgs(base: &str) -> String {
-    let pattern = format!("{}/", base);
-    print!("Checking if base contains jpgs in: {}\n", pattern);
-    let files: Vec<PathBuf> = std::fs::read_dir(&pattern)
-        .unwrap()
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            if path.extension()?.to_str()? == "jpg" || path.extension()?.to_str()? == "jpeg" {
-                Some(path)
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    if files.len() > 0 {
-        print!("Base contains jpg files, using single album mode.\n");
-        let base_path = StdPath::new(&base);
-        // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
-        return base_path.file_name().unwrap().to_str().unwrap().to_string();
-    } else {
-        print!("Base does not contain jpg files, using multi-album mode.\n");
-        return "".to_string();
     }
 }
