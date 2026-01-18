@@ -1,13 +1,14 @@
 pub mod album;
 pub mod album_image;
+pub mod cli;
 pub mod store;
 pub mod youtil;
 
 use axum::{
     Json, Router,
     extract::{Path, State},
-    http::StatusCode,
     http::header,
+    http::{HeaderValue, StatusCode},
     response::{Html, IntoResponse, Redirect, Response},
     routing::{delete, get},
 };
@@ -25,8 +26,6 @@ use tower_http::{
     services::{ServeDir, ServeFile},
     // trace::TraceLayer,
 };
-
-use crate::youtil::list_dirs;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use directories::BaseDirs;
@@ -210,28 +209,20 @@ async fn download_zip(
     Path(album): Path<String>,
 ) -> impl axum::response::IntoResponse {
     // let dispo = format!("attachment; filename=\"{}.zip\"", album);
-    match album::zip(&app_state.base_path, &album, &app_state.filtered_extensions) {
-        Some(zip_data) => {
-            (
-                axum::response::AppendHeaders([
-                    (header::CONTENT_TYPE, "application/zip"),
-                    (
-                        header::CONTENT_DISPOSITION,
-                        "attachment; filename=\"album.zip\"", // &*<std::string::String as Into<T>>::into(dispo),
-                                                              // Cow::Owned(dispo),
-                    ),
-                ]),
-                zip_data,
-            )
-        }
-        None => (
-            axum::response::AppendHeaders([
-                (header::CONTENT_TYPE, "text/html"),
-                (header::CONTENT_DISPOSITION, "inline"),
-            ]),
-            "Album not found".as_bytes().to_vec(),
-        ),
+    if let Some(zip_data) = album::zip(&app_state.base_path, &album, &app_state.filtered_extensions)
+    {
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("application/zip"),
+        );
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            HeaderValue::from_str(&format!("attachment; filename=\"{}.zip\"", album)).unwrap(),
+        );
+        return (headers, zip_data).into_response();
     }
+    return "Album not found".into_response();
 }
 
 async fn show_album(
