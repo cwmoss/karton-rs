@@ -14,6 +14,8 @@ pub enum Sizes {
     Big,
     Small,
 }
+
+#[derive(Debug, Clone, Copy)]
 pub struct Size(pub u32, pub u32);
 
 pub fn get_size(size: Sizes) -> Size {

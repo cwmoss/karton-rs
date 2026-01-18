@@ -68,6 +68,10 @@ pub fn list_files_with_info(
         .collect()
 }
 
+pub fn album_path(base: &str, name: &str) -> String {
+    format!("{}/{}", base, name)
+}
+
 pub fn build_if_needed(
     base: &str,
     name: &str,

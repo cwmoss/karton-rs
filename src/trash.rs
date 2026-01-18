@@ -103,3 +103,27 @@ fn get_args() -> (String,) {
         // args[6].parse().unwrap(),
     )
 }
+
+async fn resize_image2old(
+    State(app_state): State<Arc<AppState>>,
+    Path((album, size, img)): Path<(String, String, String)>,
+) -> impl axum::response::IntoResponse {
+    let sz = match size.as_str() {
+        "big" => album_image::get_size(album_image::Sizes::Big),
+        _ => album_image::get_size(album_image::Sizes::Small),
+    };
+    // format!("Resizing image: album={}, size={} x {}, img={}",album, sz.0, sz.1, img)
+
+    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+    album_image::resize_image(&app_state.base_path, &album, &img, sz)
+        .unwrap()
+        .write_to(&mut buffer, ImageFormat::Jpeg)
+        .unwrap();
+
+    let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner();
+
+    (
+        axum::response::AppendHeaders([(header::CONTENT_TYPE, "image/jpg")]),
+        bytes,
+    )
+}

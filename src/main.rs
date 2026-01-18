@@ -6,6 +6,7 @@ pub mod youtil;
 
 use axum::{
     Json, Router,
+    body::Body,
     extract::{Path, State},
     http::header,
     http::{HeaderValue, StatusCode},
@@ -22,6 +23,7 @@ use std::io::{BufWriter, Cursor};
 use std::path::Path as StdPath;
 use std::path::PathBuf;
 use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
+use tokio_util::io::ReaderStream;
 use tower_http::{
     services::{ServeDir, ServeFile},
     // trace::TraceLayer,
@@ -113,6 +115,7 @@ async fn if_single_album_redirect(
         Html("hello, my name is karton").into_response()
     }
 }
+
 async fn resize_image2(
     State(app_state): State<Arc<AppState>>,
     Path((album, size, img)): Path<(String, String, String)>,
@@ -123,18 +126,35 @@ async fn resize_image2(
     };
     // format!("Resizing image: album={}, size={} x {}, img={}",album, sz.0, sz.1, img)
 
-    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
-    album_image::resize_image(&app_state.base_path, &album, &img, sz)
-        .unwrap()
-        .write_to(&mut buffer, ImageFormat::Png)
-        .unwrap();
+    let src = album::album_path(&app_state.base_path, &album);
+    let cache = app_state.store.image_exists_in_cache(&src, &img, sz);
 
-    let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner();
+    // let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
 
-    (
-        axum::response::AppendHeaders([(header::CONTENT_TYPE, "image/jpg")]),
-        bytes,
-    )
+    let file_name = match cache {
+        store::ImageFile::Found { path } => path,
+        store::ImageFile::NotFound { path } => {
+            let resized_img =
+                album_image::resize_image(&app_state.base_path, &album, &img, sz).unwrap();
+            resized_img
+                .save_with_format(&path, ImageFormat::Jpeg)
+                .unwrap();
+            path
+        }
+    };
+
+    let file = match tokio::fs::File::open(&file_name).await {
+        Ok(file) => file,
+        Err(err) => return Err((StatusCode::NOT_FOUND, format!("resize failed {}", err))),
+    };
+
+    // convert the `AsyncRead` into a `Stream`
+    let stream = ReaderStream::new(file);
+    // convert the `Stream` into an `axum::body::HttpBody`
+    Ok((
+        [(header::CONTENT_TYPE, "image/jpg")],
+        Body::from_stream(stream),
+    ))
 }
 
 async fn download_zip(

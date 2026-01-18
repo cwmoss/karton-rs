@@ -1,8 +1,20 @@
 use std::path::PathBuf;
 
+use crate::album_image::Size;
+
 pub struct Store {
     pub base_path: PathBuf,
     pub cache_path: PathBuf,
+}
+
+pub enum ImageFile {
+    Found {
+        path: PathBuf,
+        // file_stream: std::fs::File,
+    },
+    NotFound {
+        path: PathBuf,
+    },
 }
 
 impl Store {
@@ -35,6 +47,38 @@ impl Store {
             .join(id(&PathBuf::from(album_path)) + ".json");
         // std::fs::create_dir_all(&album_cache_path).unwrap();
         std::fs::write(album_cache_path, data).unwrap();
+    }
+
+    pub fn get_image_cache_path(&self, album_path: &str, img: &str, size: Size) -> PathBuf {
+        let name = format!(
+            "{}-{}__{}x{}.jpg",
+            id(&PathBuf::from(album_path)),
+            img,
+            size.0,
+            size.1
+        );
+        let album_cache_path = self.cache_path.join(name);
+        album_cache_path
+    }
+
+    pub fn image_exists_in_cache(&self, album_path: &str, img: &str, size: Size) -> ImageFile {
+        let img_cache_path = self.get_image_cache_path(album_path, img, size);
+        if img_cache_path.exists() {
+            ImageFile::Found {
+                path: img_cache_path,
+            }
+        } else {
+            ImageFile::NotFound {
+                path: img_cache_path,
+            }
+        }
+    }
+
+    pub fn clear_cache(&self) {
+        if self.cache_path.exists() {
+            std::fs::remove_dir_all(&self.cache_path).unwrap();
+        }
+        std::fs::create_dir_all(&self.cache_path).unwrap();
     }
 }
 
