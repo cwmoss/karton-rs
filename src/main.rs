@@ -107,7 +107,7 @@ async fn main() {
         http_prefix => Router::new().nest(&http_prefix, router),
     };
 
-    // start the server on port 3000
+    // start the server
     let listener = tokio::net::TcpListener::bind(hostport.clone())
         .await
         .unwrap();
@@ -117,7 +117,7 @@ async fn main() {
     if open_browser {
         // let _ = after_start().await;
         let future = after_start(hostport.clone());
-        set_timeout_async!(future, 200);
+        set_timeout_async!(future, 600);
     }
     axum::serve(listener, router).await.unwrap();
 }
