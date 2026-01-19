@@ -124,7 +124,7 @@ async fn main() {
 
 async fn after_start(hostport: String) {
     println!("Opening Webbrowser");
-    webbrowser::open(&format!("http://{}", hostport)).unwrap();
+    webbrowser::open(&format!("http://{}/", hostport)).unwrap();
 }
 
 async fn if_single_album_redirect(
