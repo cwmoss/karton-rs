@@ -111,7 +111,7 @@ else
 fi
 
 echo "[1/3] Download ${asset_uri} to ${downloadFolder}"
-rm -f ${downloaded_file}
+# rm -f ${downloaded_file}
 curl --fail --location --output "${downloaded_file}" "${asset_uri}"
 
 echo "[2/3] Install ${exe_name} to the ${executable_folder}"
