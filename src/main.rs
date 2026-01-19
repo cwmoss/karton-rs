@@ -19,7 +19,9 @@ use rust_embed::Embed;
 // use std::borrow::Cow;
 
 use std::sync::Arc;
+use tokio_js_set_interval::set_timeout_async;
 use tokio_util::io::ReaderStream;
+use webbrowser;
 
 struct AppState {
     base_path: String,
@@ -35,6 +37,7 @@ async fn main() {
 
     let hostport;
     let http_prefix = format!("{}/", args.prefix.trim_end_matches('/'));
+    let open_browser;
 
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
     // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
@@ -58,7 +61,7 @@ async fn main() {
             );
             return;
         }
-        cli::Commands::Serve { host, port } => {
+        cli::Commands::Serve { host, port, open } => {
             print!("Serving albums\n");
             hostport = format!("{}:{}", host, port).to_string();
             album::build_alben(
@@ -67,6 +70,7 @@ async fn main() {
                 &app_state.filtered_extensions,
                 &app_state.store,
             );
+            open_browser = open;
         }
     }
 
@@ -110,7 +114,17 @@ async fn main() {
 
     println!("Listening on http://{}", hostport);
 
+    if open_browser {
+        // let _ = after_start().await;
+        let future = after_start(hostport.clone());
+        set_timeout_async!(future, 200);
+    }
     axum::serve(listener, router).await.unwrap();
+}
+
+async fn after_start(hostport: String) {
+    println!("Opening Webbrowser");
+    webbrowser::open(&format!("http://{}", hostport)).unwrap();
 }
 
 async fn if_single_album_redirect(

@@ -4,7 +4,7 @@ download from release page, unzip, move binary to a proper location
 
 ## via install.sh
 
-    curl -fsSL https://raw.githubusercontent.com/cwmoss/karton-rs/refs/heads/main/install.sh | bash -s 
+    curl -fsSL https://raw.githubusercontent.com/cwmoss/karton-rs/refs/heads/main/install.sh | bash -s
 
 ## mac manual example
 
@@ -32,7 +32,7 @@ download from release page, unzip, move binary to a proper location
     # TODO: I have no idea
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-pc-windows-msvc.zip -o ./karton.zip
     7z e karton.zip
-    # C:\Windows\ ?? is that a good location? 
+    # C:\Windows\ ?? is that a good location?
     cp karton-x86_64-pc-windows-msvc/karton.exe C:\Windows\
     rm -rf karton.zip karton-x86_64-pc-windows-msvc
 
@@ -40,7 +40,8 @@ download from release page, unzip, move binary to a proper location
 
     # A
     # cd in a directory with jpg files
-    karton serve
+    # -o starts your webbrowser
+    karton serve -o
 
     # B
     # give karton the jpg root
@@ -48,3 +49,6 @@ download from release page, unzip, move binary to a proper location
 
     # see all options
     karton -h
+
+    # help for serve command
+    karton serve -h

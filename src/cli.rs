@@ -41,6 +41,10 @@ pub enum Commands {
 
         #[arg(long, default_value_t = 5000)]
         port: u16,
+
+        /// open webbrowser?
+        #[arg(short, long, default_value_t = false)]
+        open: bool,
     },
     /// Scan for albums and build caches
     Scan {},
