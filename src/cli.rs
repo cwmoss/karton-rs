@@ -5,7 +5,7 @@ use std::path::Path as StdPath;
 use std::path::PathBuf;
 
 /// Karton serves your photo albums over HTTP.
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
     /// Base path to albums, if not set,
@@ -31,7 +31,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
-#[derive(Debug, Subcommand, Eq, PartialEq)]
+#[derive(Debug, Subcommand, Eq, PartialEq, Clone)]
 pub enum Commands {
     /// Start the Karton web server
     Serve {
@@ -39,18 +39,33 @@ pub enum Commands {
         #[arg(long, default_value_t = String::from("0.0.0.0"))]
         host: String,
 
-        #[arg(long, default_value_t = 5000)]
+        #[arg(long, default_value_t = 5005)]
         port: u16,
 
         /// open webbrowser?
         #[arg(short, long, default_value_t = false)]
         open: bool,
+
+        /// allow views without token (anon)
+        #[arg(long, default_value_t = false)]
+        allow_anon_access: bool,
     },
+
+    /// Start the Karton browser for local views
+    Browse {
+        /// Host to bind to
+        #[arg(long, default_value_t = String::from("0.0.0.0"))]
+        host: String,
+
+        #[arg(long, default_value_t = 5005)]
+        port: u16,
+    },
+
     /// Scan for albums and build caches
     Scan {},
 }
 
-pub fn get_cli_args_and_setup() -> (Cli, String, String) {
+pub fn get_cli_args_and_setup() -> (Cli, String, String, bool, bool) {
     let args = Cli::parse();
     //let base = args.base.clone();
     let path = StdPath::new(&args.base);
@@ -67,7 +82,14 @@ pub fn get_cli_args_and_setup() -> (Cli, String, String) {
 
     print!("Using store path: {}\n", args.store);
 
-    (args, base, single_album)
+    let (anon, browser_mode) = match args.clone().command {
+        Commands::Serve {
+            allow_anon_access, ..
+        } => (!allow_anon_access, false),
+        _ => (false, true),
+    };
+
+    (args, base, single_album, anon, browser_mode)
 }
 
 fn get_default_store_path() -> String {

@@ -1,5 +1,6 @@
 pub mod album;
 pub mod album_image;
+pub mod auth;
 pub mod cli;
 pub mod store;
 pub mod youtil;
@@ -10,6 +11,7 @@ use axum::{
     extract::{Path, State},
     http::header,
     http::{HeaderValue, StatusCode},
+    middleware,
     response::{Html, IntoResponse, Redirect, Response},
     routing::get,
 };
@@ -21,34 +23,41 @@ use rust_embed::Embed;
 use std::sync::Arc;
 use tokio_js_set_interval::set_timeout_async;
 use tokio_util::io::ReaderStream;
+use tower::ServiceBuilder;
 use webbrowser;
 
-struct AppState {
-    base_path: String,
-    prefix: String,
-    single_album: String,
-    filtered_extensions: Vec<String>,
-    store: store::Store,
+#[derive(Clone)]
+pub struct AppState {
+    pub base_path: String,
+    pub prefix: String,
+    pub single_album: String,
+    pub filtered_extensions: Vec<String>,
+    pub store: store::Store,
+    pub anon: bool,
+    pub browser_mode: bool,
 }
 
 #[tokio::main]
 async fn main() {
-    let (args, base, single_album) = cli::get_cli_args_and_setup();
+    let (args, base, single_album, anon, browser_mode) = cli::get_cli_args_and_setup();
 
     let hostport;
     let http_prefix = format!("{}/", args.prefix.trim_end_matches('/'));
     let open_browser;
 
-    // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
-    // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
-    // not the state itself. The AtomicU16 is a thread-safe integer that we use to keep track of the number of visits.
-    let app_state = Arc::new(AppState {
+    let app_state = AppState {
         base_path: base.clone(),
         single_album: single_album,
         filtered_extensions: args.extensions.split(',').map(|s| s.to_string()).collect(),
         store: store::Store::new(&args.store),
         prefix: http_prefix.clone(),
-    });
+        anon: anon,
+        browser_mode: browser_mode,
+    };
+
+    // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
+    // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
+    // not the state itself. The AtomicU16 is a thread-safe integer that we use to keep track of the number of visits.
 
     match args.command {
         cli::Commands::Scan {} => {
@@ -61,7 +70,9 @@ async fn main() {
             );
             return;
         }
-        cli::Commands::Serve { host, port, open } => {
+        cli::Commands::Serve {
+            host, port, open, ..
+        } => {
             print!("Serving albums\n");
             hostport = format!("{}:{}", host, port).to_string();
             album::build_alben(
@@ -72,11 +83,24 @@ async fn main() {
             );
             open_browser = open;
         }
+        cli::Commands::Browse { host, port } => {
+            print!("Serving albums\n");
+            hostport = format!("{}:{}", host, port).to_string();
+            album::build_alben(
+                &app_state.base_path,
+                &app_state.single_album,
+                &app_state.filtered_extensions,
+                &app_state.store,
+            );
+            open_browser = true;
+        }
     }
 
     if &app_state.prefix != "/" {
         println!("Prefix: {}", &app_state.prefix);
     }
+
+    let state = Arc::new(app_state);
 
     // let base_path = StdPath::new(&app_state.base_path);
     // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
@@ -86,17 +110,31 @@ async fn main() {
 
     // setup our application with "hello world" route at "/
     // let mut app = Router::new(); Router<Arc<AppState>>
+    /*let mw = ServiceBuilder::new().layer(middleware::from_fn(
+            // app_state.clone(),
+            auth::check_auth_middleware,
+        ));
+    */
+    let album = Router::new()
+        .route("/zip", get(download_zip))
+        .route("/{size}/{img}", get(resize_image2))
+        .route("/", get(show_album))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::check_auth_middleware,
+        ));
 
     let router = Router::new()
-        .route("/", get(if_single_album_redirect))
         // .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
-        .route("/{album}/zip", get(download_zip))
-        .route("/{album}/{size}/{img}", get(resize_image2)) // big size route
-        .route("/{album}", get(show_album))
+        //.route("/{album}/zip", get(download_zip))
+        //.route("/{album}/{size}/{img}", get(resize_image2)) // big size route
+        //.route("/{album}", get(show_album))
+        .nest("/{album}", album)
         .route("/_assets/{*file}", get(static_handler))
         // .nest_service("/_0assets", serve_dir.clone())
         // .nest_service("/_assets", serve_assets.clone())
-        .with_state(app_state)
+        .route("/", get(if_single_album_redirect))
+        .with_state(state)
         .fallback_service(get(not_found));
 
     // let prefixed_router = Router::new().nest(&http_prefix, app);

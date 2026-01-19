@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::album_image::Size;
 
+#[derive(Clone)]
 pub struct Store {
     pub base_path: PathBuf,
     pub cache_path: PathBuf,
