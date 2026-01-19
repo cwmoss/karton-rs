@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::store;
+
 use axum::{
     extract::{Path, Request, State},
     middleware::Next,
@@ -36,6 +38,13 @@ pub async fn check_auth_middleware(
 
     let response = next.run(req).await;
     response
+}
+
+pub fn get_or_create_admin_secret(store: store::Store) -> String {
+    match store.get_admin_secret() {
+        Some(secret) => secret,
+        None => store.save_admin_secret(gen_secret(13)),
+    }
 }
 
 fn gen_secret(bytes: usize) -> String {

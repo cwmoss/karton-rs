@@ -38,17 +38,22 @@ download from release page, unzip, move binary to a proper location
 
 ## run
 
-    # A
+### examples
+
     # cd in a directory with jpg files
     # -o starts your webbrowser
     karton serve -o
 
-    # B
     # give karton the jpg root
     karton -b /path/to/images serve
+
+    # use as local browser
+    karton browse
+
+### help
 
     # see all options
     karton -h
 
-    # help for serve command
+    # see all options for serve command
     karton serve -h

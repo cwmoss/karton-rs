@@ -35,6 +35,7 @@ pub struct AppState {
     pub store: store::Store,
     pub anon: bool,
     pub browser_mode: bool,
+    pub admin_secret: String,
 }
 
 #[tokio::main]
@@ -44,15 +45,17 @@ async fn main() {
     let hostport;
     let http_prefix = format!("{}/", args.prefix.trim_end_matches('/'));
     let open_browser;
+    let store = store::Store::new(&args.store);
 
     let app_state = AppState {
         base_path: base.clone(),
         single_album: single_album,
         filtered_extensions: args.extensions.split(',').map(|s| s.to_string()).collect(),
-        store: store::Store::new(&args.store),
+        store: store.clone(),
         prefix: http_prefix.clone(),
         anon: anon,
         browser_mode: browser_mode,
+        admin_secret: auth::get_or_create_admin_secret(store),
     };
 
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());

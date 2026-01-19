@@ -75,6 +75,15 @@ impl Store {
         }
     }
 
+    pub fn get_admin_secret(&self) -> Option<String> {
+        std::fs::read_to_string(self.base_path.join(".admin_secret")).ok()
+    }
+
+    pub fn save_admin_secret(&self, secret: String) -> String {
+        std::fs::write(self.base_path.join(".admin_secret"), secret.clone()).unwrap();
+        secret
+    }
+
     pub fn clear_cache(&self) {
         if self.cache_path.exists() {
             std::fs::remove_dir_all(&self.cache_path).unwrap();
