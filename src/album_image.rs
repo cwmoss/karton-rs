@@ -7,8 +7,6 @@ if ($profilename == 'big') {
 $mode = 'fit';
 */
 use image::DynamicImage;
-use image::GenericImageView;
-use image::ImageFormat;
 use image::ImageReader;
 pub enum Sizes {
     Big,

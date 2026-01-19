@@ -2,7 +2,6 @@ use super::store::Store;
 
 use super::youtil::{list_dirs, list_files};
 use askama::Template;
-use image::DynamicImage;
 use image::GenericImageView;
 use image::ImageFormat;
 use image::ImageReader;

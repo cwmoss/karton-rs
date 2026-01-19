@@ -1,4 +1,4 @@
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use directories::BaseDirs;
 use std::env;
 use std::path::Path as StdPath;

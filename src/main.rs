@@ -5,29 +5,21 @@ pub mod store;
 pub mod youtil;
 
 use axum::{
-    Json, Router,
+    Router,
     body::Body,
     extract::{Path, State},
     http::header,
     http::{HeaderValue, StatusCode},
     response::{Html, IntoResponse, Redirect, Response},
-    routing::{delete, get},
+    routing::get,
 };
 
 use image::ImageFormat;
 use rust_embed::Embed;
-use serde::{Deserialize, Serialize};
 // use std::borrow::Cow;
 
-use std::io::{BufWriter, Cursor};
-use std::path::Path as StdPath;
-use std::path::PathBuf;
-use std::sync::{Arc, atomic::AtomicU16, atomic::Ordering::Relaxed};
+use std::sync::Arc;
 use tokio_util::io::ReaderStream;
-use tower_http::{
-    services::{ServeDir, ServeFile},
-    // trace::TraceLayer,
-};
 
 struct AppState {
     base_path: String,
