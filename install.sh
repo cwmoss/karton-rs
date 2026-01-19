@@ -83,8 +83,11 @@ if [ -z "$githubApiUrl" ]; then
     githubApiUrl="https://api.github.com"
 fi
 
-downloadFolder="${TMPDIR:-/tmp}"
-mkdir -p ${downloadFolder} # make sure download folder exists
+# strange problems on mac regarding permissions
+# downloadFolder="${TMPDIR:-/tmp}"
+downloadFolder="/tmp"
+# mkdir -p ${downloadFolder} # make sure download folder exists
+
 os=$(get_os)
 arch=$(get_arch)
 file_name="${exe_name}-${arch}-${os}.tar.xz" # the file name should be download
