@@ -118,9 +118,6 @@ async fn main() {
             auth::check_auth_middleware,
         ));
     */
-    let auth = auth::Mw {
-        store: "HIHI".to_string(),
-    };
 
     let album = Router::new()
         .route("/zip", get(download_zip))
