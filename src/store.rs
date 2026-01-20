@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::album;
 use crate::album_image::Size;
 
 #[derive(Clone)]
