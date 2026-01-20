@@ -13,6 +13,30 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+pub struct Mw {
+    pub store: String,
+}
+
+impl Mw {
+    pub async fn check_auth_middleware(
+        &self,
+        State(app_state): State<Arc<AppState>>,
+        Path(params): Path<HashMap<String, String>>,
+        req: Request,
+        next: Next,
+    ) -> Response {
+        eprintln!(
+            "check auth-struct {:?} {} {:?} {}",
+            app_state.anon,
+            req.uri(),
+            params.get("album"),
+            self.store
+        );
+        let response = next.run(req).await;
+        response
+    }
+}
+
 pub async fn check_auth_middleware(
     State(app_state): State<Arc<AppState>>,
     Path(params): Path<HashMap<String, String>>,

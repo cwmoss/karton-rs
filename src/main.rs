@@ -118,6 +118,10 @@ async fn main() {
             auth::check_auth_middleware,
         ));
     */
+    let auth = auth::Mw {
+        store: "HIHI".to_string(),
+    };
+
     let album = Router::new()
         .route("/zip", get(download_zip))
         .route("/{size}/{img}", get(resize_image2))
@@ -125,6 +129,7 @@ async fn main() {
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::check_auth_middleware,
+            // || auth.check_auth_middleware,
         ));
 
     let router = Router::new()

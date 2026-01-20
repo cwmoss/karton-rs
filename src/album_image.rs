@@ -8,6 +8,12 @@ $mode = 'fit';
 */
 use image::DynamicImage;
 use image::ImageReader;
+use image::codecs::jpeg::JpegEncoder;
+use image::{ColorType, GenericImageView};
+
+use fast_image_resize::images::Image;
+use fast_image_resize::{IntoImageView, ResizeAlg, ResizeOptions, Resizer};
+
 pub enum Sizes {
     Big,
     Small,
@@ -24,6 +30,39 @@ pub fn get_size(size: Sizes) -> Size {
 }
 
 pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {
+    // Placeholder implementation
+    let file = format!("{}/{}/{}", base, album, img);
+    let (width, height) = (size.0, size.1);
+    println!(
+        "Resizing image fast '{}' in album '{}' to size '{}' => {}",
+        img, album, size.0, file
+    );
+
+    let img = ImageReader::open(file).unwrap().decode().unwrap();
+
+    // Create container for data of destination image
+    // let mut dst_image = Image::new(size.0, size.1, img.pixel_type().unwrap());
+    let mut dst_image = DynamicImage::new(size.0, size.1, img.color());
+
+    // Create Resizer instance and resize cropped source image
+    // into buffer of destination image
+    let mut resizer = Resizer::new();
+    resizer
+        .resize(
+            &img,
+            &mut dst_image,
+            &ResizeOptions::new(), /* .crop(
+                                       10.0,   // left
+                                       10.0,   // top
+                                       2000.0, // width
+                                       2000.0, // height
+                                   )*/
+        )
+        .unwrap();
+    return Some(dst_image);
+}
+
+pub fn resize_image_img(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {
     // Placeholder implementation
     let file = format!("{}/{}/{}", base, album, img);
     let (width, height) = (size.0, size.1);
