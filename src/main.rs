@@ -9,11 +9,11 @@ use axum::{
     Router,
     body::Body,
     extract::{Path, State},
-    http::header,
-    http::{HeaderValue, StatusCode},
+    http::{HeaderValue, StatusCode, header},
     middleware,
     response::{Html, IntoResponse, Redirect, Response},
     routing::get,
+    serve::Listener,
 };
 
 use image::ImageFormat;
@@ -42,6 +42,7 @@ pub struct AppState {
 async fn main() {
     let (args, base, single_album, anon, browser_mode) = cli::get_cli_args_and_setup();
 
+    let bind_host;
     let hostport;
     let http_prefix = format!("{}/", args.prefix.trim_end_matches('/'));
     let open_browser;
@@ -78,6 +79,7 @@ async fn main() {
         } => {
             print!("Serving albums\n");
             hostport = format!("{}:{}", host, port).to_string();
+            bind_host = host;
             album::build_alben(
                 &app_state.base_path,
                 &app_state.single_album,
@@ -89,6 +91,7 @@ async fn main() {
         cli::Commands::Browse { host, port } => {
             print!("Serving albums\n");
             hostport = format!("{}:{}", host, port).to_string();
+            bind_host = host;
             album::build_alben(
                 &app_state.base_path,
                 &app_state.single_album,
@@ -145,17 +148,29 @@ async fn main() {
     // let prefixed_router = Router::new().nest(&http_prefix, app);
 
     // cfg.prefix.unwrap_or("/")
-    let router = match String::from(http_prefix).as_str() {
+    let router = match String::from(http_prefix.clone()).as_str() {
         "/" | "" => router,
         http_prefix => Router::new().nest(&http_prefix, router),
     };
 
     // start the server
-    let listener = tokio::net::TcpListener::bind(hostport.clone())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(hostport.clone()).await;
+    let listener = match listener {
+        Ok(l) => l,
+        Err(msg) => {
+            println!("unable to bind. trying different port ({})", msg);
+            let hostport = format!("{}:0", bind_host);
+            tokio::net::TcpListener::bind(hostport.clone())
+                .await
+                .unwrap()
+        }
+    };
 
-    println!("Listening on http://{}", hostport);
+    println!(
+        "Listening on http://{:?}{}",
+        listener.local_addr().ok().unwrap(),
+        http_prefix
+    );
 
     if open_browser {
         // let _ = after_start().await;
