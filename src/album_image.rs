@@ -14,6 +14,8 @@ use image::{ColorType, GenericImageView};
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, ResizeAlg, ResizeOptions, Resizer};
 
+use std::ops::{Div, Mul};
+
 pub enum Sizes {
     Big,
     Small,
@@ -29,6 +31,8 @@ pub fn get_size(size: Sizes) -> Size {
     }
 }
 
+// fast version
+// https://github.com/tpyo/shrinkray/blob/main/crates/lib/src/options.rs
 pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {
     // Placeholder implementation
     let file = format!("{}/{}/{}", base, album, img);
@@ -40,9 +44,20 @@ pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<Dy
 
     let img = ImageReader::open(file).unwrap().decode().unwrap();
 
+    let (src_w, src_h) = (img.width(), img.height());
+
+    let ar = AspectRatio::from_dimensions(img.width(), img.height());
+    let target_aspect_ratio = AspectRatio::from_dimensions(width, height);
+
+    let dest_dim = if target_aspect_ratio > ar {
+        (height * ar, height)
+    } else {
+        (width, width / ar)
+    };
+
     // Create container for data of destination image
     // let mut dst_image = Image::new(size.0, size.1, img.pixel_type().unwrap());
-    let mut dst_image = DynamicImage::new(size.0, size.1, img.color());
+    let mut dst_image = DynamicImage::new(dest_dim.0, dest_dim.1, img.color());
 
     // Create Resizer instance and resize cropped source image
     // into buffer of destination image
@@ -84,4 +99,55 @@ pub fn resize_image_img(base: &str, album: &str, img: &str, size: Size) -> Optio
 
     // let resized_img = img.resize_to_fill(400, 150, image::imageops::FilterType::Lanczos3);
     return Some(resized_img);
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct AspectRatio {
+    pub ratio: f64,
+    pub x: u32,
+    pub y: u32,
+}
+
+impl AspectRatio {
+    /// Create a new AspectRatio
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if either x or y is zero
+    pub fn new(x: u32, y: u32) -> Self {
+        /*if x == 0 {
+            return Err("aspect ratio numerator cannot be zero".to_string());
+        }
+        if y == 0 {
+            return Err("aspect ratio denominator cannot be zero".to_string());
+        }
+        Ok(AspectRatio::from_dimensions(x, y))
+        -> Result<Self, String>
+        */
+        AspectRatio::from_dimensions(x, y)
+    }
+
+    pub(crate) fn from_dimensions(x: u32, y: u32) -> Self {
+        Self {
+            ratio: f64::from(x) / f64::from(y),
+            x,
+            y,
+        }
+    }
+}
+
+impl Div<AspectRatio> for u32 {
+    type Output = u32;
+
+    fn div(self, aspect_ratio: AspectRatio) -> Self::Output {
+        (f64::from(self) / aspect_ratio.ratio).round() as u32
+    }
+}
+
+impl Mul<AspectRatio> for u32 {
+    type Output = u32;
+
+    fn mul(self, aspect_ratio: AspectRatio) -> Self::Output {
+        (f64::from(self) * aspect_ratio.ratio).round() as u32
+    }
 }
