@@ -57,3 +57,12 @@ download from release page, unzip, move binary to a proper location
 
     # see all options for serve command
     karton serve -h
+
+# TODO
+
+[ ] auth, session
+[ ] faster metadata (getimagesize/mime type)
+[ ] browse mode: recurse subdirectories
+[ ] serve mode: admin: create folder, upload images
+[ ] stats: health, uptime, served requests, cache size
+[ ] cli: cache clear
