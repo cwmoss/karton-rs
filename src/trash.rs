@@ -127,3 +127,30 @@ async fn resize_image2old(
         bytes,
     )
 }
+
+pub fn build_if_needed0(base: &str, name: &str, filtered_extensions: &Vec<String>) -> Album {
+    let path = format!("{}/{}/.karton/", base, name);
+    let index = format!("{}index.json", path);
+    let cache = format!("{}cache/", path);
+
+    if Path::new(&path).is_dir() {
+        print!("karton exists, skipping build check.\n");
+    } else {
+        print!("karton missing, building album: {}\n", name);
+        fs::create_dir_all(&path).unwrap();
+        // Placeholder: actual build logic would go here
+    }
+
+    if !Path::new(&cache).is_dir() {
+        fs::create_dir_all(&cache).unwrap()
+    }
+
+    let album = Album {
+        name: name.to_string(),
+        images: list_files_with_info(base, name, filtered_extensions),
+    };
+    let j = serde_json::to_string(&album).unwrap();
+    print!("Album built: {:?}\n", j);
+    fs::write(index, j).unwrap();
+    album
+}

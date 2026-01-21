@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::album;
+use crate::album::{self, Album};
 use crate::album_image::Size;
 
 #[derive(Clone)]
@@ -30,20 +30,21 @@ impl Store {
         }
     }
 
-    pub fn get_album_index(&self, album_path: String) -> Option<String> {
+    pub fn get_album_index(&self, album_path: String) -> Option<Album> {
         let index_path = self
             .base_path
             .join(id(&PathBuf::from(&album_path)) + ".json");
         if index_path.exists() {
             let data = std::fs::read_to_string(index_path).ok()?;
             // let images: Vec<String> = serde_json::from_str(&data).ok()?;
-            Some(data)
+            Some(serde_json::from_str(&data).ok()?)
         } else {
             None
         }
     }
 
-    pub fn save_album_index(&self, album_path: &str, data: &str) {
+    pub fn save_album_index(&self, album_path: &str, album: &Album) {
+        let data = serde_json::to_string(&album).unwrap();
         let album_cache_path = self
             .base_path
             .join(id(&PathBuf::from(album_path)) + ".json");
