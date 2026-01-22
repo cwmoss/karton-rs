@@ -65,5 +65,5 @@ download from release page, unzip, move binary to a proper location
 * [ ] browse mode: recurse subdirectories
 * [ ] serve mode: admin: create folder, upload images
 * [ ] stats: health, uptime, served requests, cache size
-[ ] cli: cache clear
-[ ] win powershell: installer
+* [ ] cli: cache clear
+* [ ] win powershell: installer
