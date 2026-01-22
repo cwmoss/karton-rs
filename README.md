@@ -60,10 +60,10 @@ download from release page, unzip, move binary to a proper location
 
 # TODO
 
-[ ] auth, session
-[ ] faster metadata (getimagesize/mime type)
-[ ] browse mode: recurse subdirectories
-[ ] serve mode: admin: create folder, upload images
-[ ] stats: health, uptime, served requests, cache size
+* [ ] auth, session
+* [ ] faster metadata (getimagesize/mime type)
+* [ ] browse mode: recurse subdirectories
+* [ ] serve mode: admin: create folder, upload images
+* [ ] stats: health, uptime, served requests, cache size
 [ ] cli: cache clear
 [ ] win powershell: installer
