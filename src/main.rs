@@ -21,9 +21,11 @@ use rust_embed::Embed;
 // use std::borrow::Cow;
 
 use std::sync::Arc;
+use time::Duration as TDuration;
 use tokio_js_set_interval::set_timeout_async;
 use tokio_util::io::ReaderStream;
 use tower::ServiceBuilder;
+use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
 use webbrowser;
 
 #[derive(Clone)]
@@ -122,15 +124,28 @@ async fn main() {
         ));
     */
 
+    println!("anon? {}", anon);
+
+    let session_store = MemoryStore::default();
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_name("karton")
+        .with_expiry(Expiry::OnInactivity(TDuration::seconds(60 * 1)));
+
     let album = Router::new()
         .route("/zip", get(download_zip))
         .route("/{size}/{img}", get(resize_image2))
-        .route("/", get(show_album))
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            auth::check_auth_middleware,
-            // || auth.check_auth_middleware,
-        ));
+        .route("/", get(show_album));
+    let album = match anon {
+        false => album
+            .route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                auth::check_auth_middleware,
+                // || auth.check_auth_middleware,
+            ))
+            .route_layer(session_layer),
+        true => album,
+    };
 
     let router = Router::new()
         // .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route

@@ -8,19 +8,26 @@ use axum::{
 };
 use base64::{Engine as _, engine::general_purpose};
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
 
+#[derive(Default, Debug, Deserialize, Serialize)]
 pub struct User {
     pub album: String,
     pub is_admin: bool,
 }
 
+#[derive(Default, Deserialize, Serialize)]
+struct Counter(usize);
+
 pub async fn check_auth_middleware(
     State(app_state): State<Arc<AppState>>,
     Path(params): Path<HashMap<String, String>>,
+    session: Session,
     req: Request,
     next: Next,
 ) -> Response {
@@ -33,6 +40,19 @@ pub async fn check_auth_middleware(
     // println!("check-auth");
     // println!("check auth {:?} {}", app_state.anon, album);
     let album = "??";
+
+    let counter: Counter = session.get("_counter").await.unwrap().unwrap_or_default();
+    let mut user: User = session.get("_user").await.unwrap().unwrap_or_default();
+
+    if counter.0 == 7 {
+        user.is_admin = true;
+    }
+
+    session.insert("_counter", counter.0 + 1).await.unwrap();
+
+    eprintln!("Current count: {} user: {:?}", counter.0, user);
+
+    session.insert("_user", user).await.unwrap();
 
     eprintln!(
         "check auth {:?} {} {:?}",

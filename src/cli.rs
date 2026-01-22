@@ -85,8 +85,8 @@ pub fn get_cli_args_and_setup() -> (Cli, String, String, bool, bool) {
     let (anon, browser_mode) = match args.clone().command {
         Commands::Serve {
             allow_anon_access, ..
-        } => (!allow_anon_access, false),
-        _ => (false, true),
+        } => (allow_anon_access, false),
+        _ => (true, true),
     };
 
     (args, base, single_album, anon, browser_mode)

@@ -66,3 +66,4 @@ download from release page, unzip, move binary to a proper location
 [ ] serve mode: admin: create folder, upload images
 [ ] stats: health, uptime, served requests, cache size
 [ ] cli: cache clear
+[ ] win powershell: installer
