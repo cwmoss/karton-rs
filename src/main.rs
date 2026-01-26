@@ -11,7 +11,7 @@ use axum::{
     extract::{Path, State},
     http::{HeaderValue, StatusCode, header},
     middleware,
-    response::{Html, IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Json, Redirect, Response},
     routing::get,
     serve::Listener,
 };
@@ -21,6 +21,8 @@ use rust_embed::Embed;
 // use std::borrow::Cow;
 
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
+use std::time::Instant;
 use time::Duration as TDuration;
 use tokio_js_set_interval::set_timeout_async;
 use tokio_stream::wrappers::BroadcastStream;
@@ -29,6 +31,16 @@ use tokio_util::io::ReaderStream;
 use tower::ServiceBuilder;
 use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
 use webbrowser;
+
+#[derive(serde::Serialize)]
+struct Stats {
+    albums_count: usize,
+    total_images: usize,
+    cache_size_bytes: u64,
+    server_uptime_seconds: u64,
+    scaled_images_count: u64,
+    downloaded_zips_count: u64,
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -40,6 +52,9 @@ pub struct AppState {
     pub anon: bool,
     pub browser_mode: bool,
     pub admin_secret: String,
+    pub start_time: Instant,
+    pub scaled_images: Arc<AtomicU64>,
+    pub downloaded_zips: Arc<AtomicU64>,
 }
 
 #[tokio::main]
@@ -61,6 +76,9 @@ async fn main() {
         anon: anon,
         browser_mode: browser_mode,
         admin_secret: auth::get_or_create_admin_secret(store),
+        start_time: Instant::now(),
+        scaled_images: Arc::new(AtomicU64::new(0)),
+        downloaded_zips: Arc::new(AtomicU64::new(0)),
     };
 
     // let base = _base.unwrap_or(env::current_dir()?.to_string_lossy().to_string());
@@ -158,6 +176,7 @@ async fn main() {
         .route("/_assets/{*file}", get(static_handler))
         // .nest_service("/_0assets", serve_dir.clone())
         // .nest_service("/_assets", serve_assets.clone())
+        .route("/stats", get(stats_handler))
         .route("/", get(if_single_album_redirect))
         .with_state(state)
         .fallback_service(get(not_found));
@@ -236,6 +255,9 @@ async fn resize_image2(
             resized_img
                 .save_with_format(&path, ImageFormat::Jpeg)
                 .unwrap();
+            app_state
+                .scaled_images
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             path
         }
     };
@@ -261,6 +283,9 @@ async fn download_zip(
     // let dispo = format!("attachment; filename=\"{}.zip\"", album);
     if let Some(zip_data) = album::zip(&app_state.base_path, &album, &app_state.filtered_extensions)
     {
+        app_state
+            .downloaded_zips
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let mut headers = axum::http::HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
@@ -303,6 +328,49 @@ async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
 // Finally, we use a fallback route for anything that didn't match.
 async fn not_found() -> Html<&'static str> {
     Html("<h1>404</h1><p>Not Found</p>")
+}
+
+async fn stats_handler(State(app_state): State<Arc<AppState>>) -> Json<Stats> {
+    let albums = youtil::list_dirs(&app_state.base_path);
+    let albums_count = albums.len();
+    let mut total_images = 0;
+    for album_name in &albums {
+        if let Some(album) = album::load(&app_state.base_path, album_name, &app_state.store) {
+            total_images += album.images.len();
+        }
+    }
+    let cache_size_bytes = calculate_cache_size(&app_state.store.cache_path);
+    let server_uptime_seconds = app_state.start_time.elapsed().as_secs();
+    let scaled_images_count = app_state
+        .scaled_images
+        .load(std::sync::atomic::Ordering::Relaxed);
+    let downloaded_zips_count = app_state
+        .downloaded_zips
+        .load(std::sync::atomic::Ordering::Relaxed);
+    Json(Stats {
+        albums_count,
+        total_images,
+        cache_size_bytes,
+        server_uptime_seconds,
+        scaled_images_count,
+        downloaded_zips_count,
+    })
+}
+
+fn calculate_cache_size(cache_path: &std::path::Path) -> u64 {
+    let mut size = 0;
+    if let Ok(entries) = std::fs::read_dir(cache_path) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_file() {
+                    size += metadata.len();
+                } else if metadata.is_dir() {
+                    size += calculate_cache_size(&entry.path());
+                }
+            }
+        }
+    }
+    size
 }
 
 #[derive(Embed)]

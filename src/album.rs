@@ -14,9 +14,9 @@ use zip::write::SimpleFileOptions;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Album {
-    source: String,
-    name: String,
-    images: Vec<FileInfo>,
+    pub source: String,
+    pub name: String,
+    pub images: Vec<FileInfo>,
 }
 pub struct AlbumConfig {
     store: Store,
