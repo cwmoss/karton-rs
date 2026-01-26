@@ -7,12 +7,12 @@ pub mod youtil;
 
 use axum::{
     Router,
-    body::Body,
-    extract::{Path, State},
+    body::{Body, Bytes},
+    extract::{Path, Query, State},
     http::{HeaderValue, StatusCode, header},
     middleware,
     response::{Html, IntoResponse, Json, Redirect, Response},
-    routing::get,
+    routing::{get, post},
     serve::Listener,
 };
 
@@ -20,6 +20,7 @@ use image::ImageFormat;
 use rust_embed::Embed;
 // use std::borrow::Cow;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::time::Instant;
@@ -167,7 +168,8 @@ async fn main() {
     let album = Router::new()
         .route("/zip", get(download_zip))
         .route("/i/{size}/{img}", get(resize_image2))
-        .route("/", get(show_album));
+        .route("/", get(show_album))
+        .route("/", post(upload_image));
     let album = match anon {
         false => album
             .route_layer(middleware::from_fn_with_state(
@@ -377,6 +379,35 @@ async fn stats_handler(State(app_state): State<Arc<AppState>>) -> Json<Stats> {
         scaled_images_count,
         downloaded_zips_count,
     })
+}
+
+async fn upload_image(
+    State(app_state): State<Arc<AppState>>,
+    Path(album): Path<String>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+    body: Bytes,
+) -> impl IntoResponse {
+    let filename = params
+        .get("filename")
+        .unwrap_or(&"uploaded.jpg".to_string())
+        .clone();
+    let album_path = PathBuf::from(album::album_path(&app_state.base_path, &album));
+    if !album_path.exists() {
+        return (StatusCode::NOT_FOUND, "Album not found").into_response();
+    }
+    let file_path = album_path.join(filename);
+    match tokio::fs::write(&file_path, body).await {
+        Ok(_) => {
+            // Optionally rebuild album index
+            // album::build_alben(&app_state.base_path, &app_state.single_album, &app_state.filtered_extensions, &app_state.store);
+            (StatusCode::OK, "Image uploaded successfully").into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to save image: {}", e),
+        )
+            .into_response(),
+    }
 }
 
 fn calculate_cache_size(cache_path: &std::path::Path) -> u64 {

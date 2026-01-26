@@ -60,10 +60,18 @@ download from release page, unzip, move binary to a proper location
 
 # TODO
 
-* [ ] auth, session
-* [ ] faster metadata (getimagesize/mime type)
-* [ ] browse mode: recurse subdirectories
-* [ ] serve mode: admin: create folder, upload images
-* [ ] stats: health, uptime, served requests, cache size
-* [ ] cli: cache clear
-* [ ] win powershell: installer
+- [ ] auth, session
+- [ ] faster metadata (getimagesize/mime type)
+- [ ] browse mode: recurse subdirectories
+- [ ] serve mode: admin: create folder, upload images
+- [ ] stats: health, uptime, served requests, cache size
+- [ ] cli: cache clear
+- [ ] win powershell: installer
+
+## file upload
+
+example: upload this-is-pepper.jpg to album "hugo"
+
+    curl -X POST -H 'Content-Type: image/jpeg' \
+        --data-binary "@this-is-pepper.jpg" \
+        "http://localhost:5005/a/hugo?filename=this-is-pepper.jpg"
