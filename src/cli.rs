@@ -63,6 +63,16 @@ pub enum Commands {
 
     /// Scan for albums and build caches
     Scan {},
+
+    /// Display stats from a running server
+    Stats {
+        /// Host of the running server
+        #[arg(long, default_value_t = String::from("localhost"))]
+        host: String,
+
+        #[arg(long, default_value_t = 5005)]
+        port: u16,
+    },
 }
 
 pub fn get_cli_args_and_setup() -> (Cli, String, String, bool, bool) {

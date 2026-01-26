@@ -154,3 +154,24 @@ pub fn build_if_needed0(base: &str, name: &str, filtered_extensions: &Vec<String
     fs::write(index, j).unwrap();
     album
 }
+
+cli::Commands::Stats { host, port } => {
+            print!("Fetching stats from server at {}:{}\n", host, port);
+            match fetch_stats(host, port) {
+                Ok(stats) => {
+                    println!("{:#?}", stats);
+                }
+                Err(e) => println!("Error: {}", e),
+            }
+            std::process::exit(0);
+        }
+
+fn fetch_stats(host: String, port: u16) -> Result<Stats, Box<dyn std::error::Error>> {
+    let resp = reqwest::blocking::get(format!("http://{}:{}/stats", host, port))?;
+    if resp.status().is_success() {
+        let stats: Stats = resp.json()?;
+        Ok(stats)
+    } else {
+        Err(format!("Server returned status: {}", resp.status()).into())
+    }
+}

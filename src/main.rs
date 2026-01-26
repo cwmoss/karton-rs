@@ -32,7 +32,7 @@ use tower::ServiceBuilder;
 use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
 use webbrowser;
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Stats {
     albums_count: usize,
     total_images: usize,
@@ -94,6 +94,18 @@ async fn main() {
                 &app_state.filtered_extensions,
                 &app_state.store,
             );
+            return;
+        }
+        // cli::Commands::Stats { .. } => todo!(),
+        cli::Commands::Stats { host, port } => {
+            print!("Fetching stats from server at {}:{}\n", host, port);
+            match fetch_stats(host, port).await {
+                Ok(stats) => {
+                    println!("{:#?}", stats);
+                }
+                Err(e) => println!("Error: {}", e),
+            }
+            // std::process::exit(0);
             return;
         }
         cli::Commands::Serve {
@@ -219,6 +231,16 @@ async fn main() {
 async fn after_start(hostport: String) {
     println!("Opening Webbrowser");
     webbrowser::open(&format!("http://{}/", hostport)).unwrap();
+}
+
+async fn fetch_stats(host: String, port: u16) -> Result<Stats, Box<dyn std::error::Error>> {
+    let resp = reqwest::get(format!("http://{}:{}/stats", host, port)).await?;
+    if resp.status().is_success() {
+        let stats: Stats = resp.json().await?;
+        Ok(stats)
+    } else {
+        Err(format!("Server returned status: {}", resp.status()).into())
+    }
 }
 
 async fn if_single_album_redirect(
