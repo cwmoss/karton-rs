@@ -18,7 +18,9 @@ pub struct Album {
     name: String,
     images: Vec<FileInfo>,
 }
-
+pub struct AlbumConfig {
+    store: Store,
+}
 #[derive(serde::Serialize)]
 struct AlbumUI {
     name: String,
@@ -160,15 +162,15 @@ struct IndexTemplate<'a> {
 
 pub fn render_index(album: &Album, prefix: &str) -> String {
     // let album_json = serde_json::to_string(&album).unwrap();
-    let album_json = serde_json::to_string(&AlbumUI {
-        name: album.name.clone(),
-        images: album.images.clone(),
-    })
-    .unwrap();
+    let album_json = json!({
+        "name": album.name,
+        "images": &album.images,
+    });
+    // .unwrap();
 
     let template = IndexTemplate {
         name: album.name.as_str(),
-        album: &album_json,
+        album: &album_json.to_string(),
         total: album.images.len(),
         prefix: prefix,
     };

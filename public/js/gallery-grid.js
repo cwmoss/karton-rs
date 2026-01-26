@@ -4,9 +4,9 @@ import { BalancedMasonryGrid } from "./grid-vanilla.js";
 let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${
   it.w
 }; --height: ${it.h};"><div>
-    <a href="./${name}/big/${it.name}" data-pswp-width="${
+    <a href="./a/${name}/i/big/${it.name}" data-pswp-width="${
       it.w
-    }" data-pswp-height="${it.h}"><img src="./${name}/thumb/${
+    }" data-pswp-height="${it.h}"><img src="./a/${name}/i/thumb/${
       it.name
     }" alt="photography" loading="lazy"/></a>
     <figcaption>${it.name} ${it.w} x ${it.h}</figcaption>

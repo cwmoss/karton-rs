@@ -23,6 +23,8 @@ use rust_embed::Embed;
 use std::sync::Arc;
 use time::Duration as TDuration;
 use tokio_js_set_interval::set_timeout_async;
+use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::{Stream, StreamExt};
 use tokio_util::io::ReaderStream;
 use tower::ServiceBuilder;
 use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
@@ -134,7 +136,7 @@ async fn main() {
 
     let album = Router::new()
         .route("/zip", get(download_zip))
-        .route("/{size}/{img}", get(resize_image2))
+        .route("/i/{size}/{img}", get(resize_image2))
         .route("/", get(show_album));
     let album = match anon {
         false => album
@@ -150,9 +152,9 @@ async fn main() {
     let router = Router::new()
         // .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
         //.route("/{album}/zip", get(download_zip))
-        //.route("/{album}/{size}/{img}", get(resize_image2)) // big size route
+        //.route("/{album}/i/{size}/{img}", get(resize_image2)) // big size route
         //.route("/{album}", get(show_album))
-        .nest("/{album}", album)
+        .nest("/a/{album}", album)
         .route("/_assets/{*file}", get(static_handler))
         // .nest_service("/_0assets", serve_dir.clone())
         // .nest_service("/_assets", serve_assets.clone())
@@ -204,7 +206,7 @@ async fn if_single_album_redirect(
     State(app_state): State<Arc<AppState>>,
 ) -> impl axum::response::IntoResponse {
     if app_state.single_album != "" {
-        Redirect::permanent(&format!("{}{}", app_state.prefix, app_state.single_album))
+        Redirect::permanent(&format!("{}a/{}", app_state.prefix, app_state.single_album))
             .into_response()
     } else {
         Html("hello, my name is karton").into_response()
