@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 /// Karton serves your photo albums over HTTP.
 #[derive(Parser, Debug, Clone)]
-#[command(version, about, long_about = None)]
+#[command(version = concat!(env!("CARGO_PKG_VERSION"), " build ", env!("BUILD_TIME")), about, long_about = None)]
 pub struct Cli {
     /// Base path to albums, if not set,
     /// uses current directory or KARTON_BASE env var
