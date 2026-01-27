@@ -277,6 +277,7 @@ async fn resize_image2(
     let file_name = match cache {
         store::ImageFile::Found { path } => path,
         store::ImageFile::NotFound { path } => {
+            //store::ImageFile::Found { path } | store::ImageFile::NotFound { path } => {
             let resized_img =
                 album_image::resize_image(&app_state.base_path, &album, &img, sz).unwrap();
             resized_img
