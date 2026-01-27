@@ -158,9 +158,10 @@ struct IndexTemplate<'a> {
     album: &'a str,
     total: usize,
     prefix: &'a str,
+    admin: bool,
 }
 
-pub fn render_index(album: &Album, prefix: &str) -> String {
+pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
     // let album_json = serde_json::to_string(&album).unwrap();
     let album_json = json!({
         "name": album.name,
@@ -172,7 +173,8 @@ pub fn render_index(album: &Album, prefix: &str) -> String {
         name: album.name.as_str(),
         album: &album_json.to_string(),
         total: album.images.len(),
-        prefix: prefix,
+        prefix,
+        admin,
     };
     template.render().unwrap()
 }

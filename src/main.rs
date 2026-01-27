@@ -336,7 +336,7 @@ async fn show_album(
     let album_data = album::load(&app_state.base_path, &album, &app_state.store);
     match album_data {
         Some(album) => {
-            let html = album::render_index(&album, &app_state.prefix);
+            let html = album::render_index(&album, &app_state.prefix, true);
             ([(header::CONTENT_TYPE, "text/html")], html)
         }
         None => (

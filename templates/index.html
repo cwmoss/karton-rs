@@ -1,74 +1,83 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <base href="{{prefix}}" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="_assets/favicon-32x32.png"
-    />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="generator" content="Karton" />
-    <script>
-      window.__load_data = JSON.parse(`{{ album | safe }}`);
-    </script>
 
-    <title>{{name}} | Karton</title>
+<head>
+  <meta charset="UTF-8" />
+  <base href="{{prefix}}" />
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="_assets/favicon-32x32.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content="Karton" />
+  <script>
+    window.__load_data = JSON.parse(`{{ album | safe }}`);
+  </script>
 
-    <script
-      type="module"
-      crossorigin
-      src="./_assets/js/gallery-grid.js"
-    ></script>
-    <link rel="stylesheet" href="./_assets/css/karton.css" />
-    <link rel="stylesheet" href="./_assets/photoswipe/photoswipe.css" />
-  </head>
+  <title>{{name}} | Karton</title>
 
-  <body>
-    <header>
-      <h1>{{name}}</h1>
-      <h2>
-        {{total}} images <a href="./a/{{name}}/zip">download all as zip</a>
-      </h2>
-    </header>
-    <gallery-grid></gallery-grid>
+  <script
+    type="module"
+    crossorigin
+    src="./_assets/js/gallery-grid.js"></script>
+  <link rel="stylesheet" href="./_assets/css/karton.css" />
+  <link rel="stylesheet" href="./_assets/photoswipe/photoswipe.css" />
+  {%if admin %}
+  <link rel="stylesheet" href="./_assets/filepond/filepond.css" />
+  <script rel="stylesheet" src="./_assets/filepond/filepond.js"></script>
+  <script
+    type="module"
+    crossorigin
+    src="./_assets/js/admin-panel.js"></script>
+  {% endif %}
+</head>
 
-    <script type="module">
-      import Lightbox from "./_assets/photoswipe/photoswipe-lightbox.esm.min.js";
-      import PhotoSwipe from "./_assets/photoswipe/photoswipe.esm.min.js";
+<body>
+  {%if admin %}<admin-panel></admin-panel>{% endif %}
+  <header>
+    <h1>{{name}}</h1>
+    <h2>
+      {{total}} images <a href="./a/{{name}}/zip">download all as zip</a>
+    </h2>
+  </header>
+  <gallery-grid></gallery-grid>
 
-      const lightbox = new Lightbox({
-        gallery: "gallery-grid",
-        children: "figure",
-        pswpModule: PhotoSwipe,
-      });
-      lightbox.on("uiRegister", function () {
-        lightbox.pswp.ui.registerElement({
-          name: "custom-caption",
-          order: 9,
-          isButton: false,
-          appendTo: "root",
-          html: "Caption text",
-          onInit: (el, pswp) => {
-            lightbox.pswp.on("change", () => {
-              const currSlideElement = lightbox.pswp.currSlide.data.element;
-              let captionHTML = "";
-              if (currSlideElement) {
-                const hiddenCaption =
-                  currSlideElement.querySelector("figcaption");
-                console.log("+++ hiddenCaption", hiddenCaption);
-                if (hiddenCaption) {
-                  captionHTML = hiddenCaption.innerHTML;
-                }
-                el.innerHTML = captionHTML || "";
+  <script type="module">
+    import Lightbox from "./_assets/photoswipe/photoswipe-lightbox.esm.min.js";
+    import PhotoSwipe from "./_assets/photoswipe/photoswipe.esm.min.js";
+
+    const lightbox = new Lightbox({
+      gallery: "gallery-grid",
+      children: "figure",
+      pswpModule: PhotoSwipe,
+    });
+    lightbox.on("uiRegister", function() {
+      lightbox.pswp.ui.registerElement({
+        name: "custom-caption",
+        order: 9,
+        isButton: false,
+        appendTo: "root",
+        html: "Caption text",
+        onInit: (el, pswp) => {
+          lightbox.pswp.on("change", () => {
+            const currSlideElement = lightbox.pswp.currSlide.data.element;
+            let captionHTML = "";
+            if (currSlideElement) {
+              const hiddenCaption =
+                currSlideElement.querySelector("figcaption");
+              console.log("+++ hiddenCaption", hiddenCaption);
+              if (hiddenCaption) {
+                captionHTML = hiddenCaption.innerHTML;
               }
-            });
-          },
-        });
+              el.innerHTML = captionHTML || "";
+            }
+          });
+        },
       });
-      lightbox.init();
-    </script>
-  </body>
+    });
+    lightbox.init();
+  </script>
+</body>
+
 </html>

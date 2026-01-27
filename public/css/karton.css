@@ -281,3 +281,14 @@ header {
     margin-left: 2rem;
   }
 }
+
+admin-panel {
+  position: sticky;
+  display: block;
+  top: 0;
+  /* z-index: 99; */
+  width: 100%;
+  padding: 1rem;
+  background-color: white;
+  border-bottom: 3px dashed black;
+}
