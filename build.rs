@@ -1,16 +1,16 @@
-use std::process::Command;
+use std::time::SystemTime;
+use time::OffsetDateTime;
 
 fn main() {
-    // Get the current date in YYYYMMDD format
-    let output = Command::new("date")
-        .args(&["+%Y%m%d"])
-        .output()
-        .expect("Failed to execute date command");
+    let t: OffsetDateTime = SystemTime::now().into();
+    let bt = format!(
+        "{:0>4}{:0>2}{:0>2}{:0>2}{:0>2}",
+        t.year(),
+        t.month() as u8,
+        t.day(),
+        t.hour(),
+        t.minute()
+    );
 
-    let build_time = String::from_utf8(output.stdout)
-        .expect("Invalid UTF-8 output")
-        .trim()
-        .to_string();
-
-    println!("cargo:rustc-env=BUILD_TIME={}", build_time);
+    println!("cargo:rustc-env=BUILD_TIME={}", bt);
 }

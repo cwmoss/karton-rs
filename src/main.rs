@@ -38,12 +38,12 @@ use webbrowser;
 struct Stats {
     albums_count: usize,
     total_images: usize,
-    cache_size_bytes: u64,
-    server_uptime_seconds: u64,
+    cache_size: String,
+    server_uptime: String,
     scaled_images_count: u64,
     downloaded_zips_count: u64,
-    physical_mem: usize,
-    virtual_mem: usize,
+    physical_mem: String,
+    virtual_mem: String,
 }
 
 #[derive(Clone)]
@@ -381,15 +381,18 @@ async fn stats_handler(State(app_state): State<Arc<AppState>>) -> Json<Stats> {
             virtual_mem: 0,
         },
     };
+    let cache_size = youtil::format_size(cache_size_bytes);
+    let server_uptime = youtil::format_uptime(server_uptime_seconds);
+    //let physical_mem = youtil::format_size(u64::from(mem.physical_mem));
     Json(Stats {
         albums_count,
         total_images,
-        cache_size_bytes,
-        server_uptime_seconds,
+        cache_size,
+        server_uptime,
         scaled_images_count,
         downloaded_zips_count,
-        physical_mem: mem.physical_mem,
-        virtual_mem: mem.virtual_mem,
+        physical_mem: youtil::format_size(mem.physical_mem as u64),
+        virtual_mem: youtil::format_size(mem.virtual_mem as u64),
     })
 }
 
