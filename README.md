@@ -64,7 +64,7 @@ download from release page, unzip, move binary to a proper location
 - [ ] faster metadata (getimagesize/mime type)
 - [ ] browse mode: recurse subdirectories
 - [ ] serve mode: admin: create folder, upload images
-- [ ] stats: health, uptime, served requests, cache size
+- [x] stats: health, uptime, served requests, cache size
 - [ ] cli: cache clear
 - [ ] win powershell: installer
 
