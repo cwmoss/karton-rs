@@ -36,7 +36,7 @@ pub enum Commands {
     /// Start the Karton web server
     Serve {
         /// Host to bind to
-        #[arg(long, default_value_t = String::from("0.0.0.0"))]
+        #[arg(long, default_value_t = String::from("127.0.0.1"))]
         host: String,
 
         #[arg(long, default_value_t = 5005)]
@@ -54,7 +54,7 @@ pub enum Commands {
     /// Start the Karton browser for local views
     Browse {
         /// Host to bind to
-        #[arg(long, default_value_t = String::from("0.0.0.0"))]
+        #[arg(long, default_value_t = String::from("127.0.0.1"))]
         host: String,
 
         #[arg(long, default_value_t = 5005)]
