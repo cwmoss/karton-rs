@@ -4,6 +4,7 @@ pub mod auth;
 pub mod cli;
 pub mod store;
 pub mod youtil;
+use memory_stats::{MemoryStats, memory_stats};
 
 use axum::{
     Router,
@@ -41,6 +42,8 @@ struct Stats {
     server_uptime_seconds: u64,
     scaled_images_count: u64,
     downloaded_zips_count: u64,
+    physical_mem: usize,
+    virtual_mem: usize,
 }
 
 #[derive(Clone)]
@@ -371,6 +374,13 @@ async fn stats_handler(State(app_state): State<Arc<AppState>>) -> Json<Stats> {
     let downloaded_zips_count = app_state
         .downloaded_zips
         .load(std::sync::atomic::Ordering::Relaxed);
+    let mem = match memory_stats() {
+        Some(usage) => usage,
+        None => MemoryStats {
+            physical_mem: 0,
+            virtual_mem: 0,
+        },
+    };
     Json(Stats {
         albums_count,
         total_images,
@@ -378,6 +388,8 @@ async fn stats_handler(State(app_state): State<Arc<AppState>>) -> Json<Stats> {
         server_uptime_seconds,
         scaled_images_count,
         downloaded_zips_count,
+        physical_mem: mem.physical_mem,
+        virtual_mem: mem.virtual_mem,
     })
 }
 
