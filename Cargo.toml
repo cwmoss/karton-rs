@@ -15,7 +15,7 @@ path = "src/trial.rs"
 
 [dependencies]
 askama = "0.15.1"
-axum = "0.8.8"
+axum = { version = "0.8.8", features = ["macros", "multipart"] }
 base64 = "0.22.1"
 clap = { version = "4.5.54", features = ["derive"] }
 directories = "6.0.0"

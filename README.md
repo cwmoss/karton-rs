@@ -2,11 +2,11 @@
 
 download from release page, unzip, move binary to a proper location
 
-## via install.sh
+#### via install.sh
 
     curl -fsSL https://raw.githubusercontent.com/cwmoss/karton-rs/refs/heads/main/install.sh | bash -s
 
-## mac manual example
+#### mac manual example
 
     # download to current folder
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-aarch64-apple-darwin.tar.xz -o ./karton.tar.xz
@@ -19,7 +19,7 @@ download from release page, unzip, move binary to a proper location
     # remove downloaded file and archive folder
     rm -rf karton.tar.xz karton-aarch64-apple-darwin
 
-## linux manual example
+#### linux manual example
 
     # download to current folder
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-unknown-linux-gnu.tar.xz -o ./karton.tar.xz
@@ -27,7 +27,7 @@ download from release page, unzip, move binary to a proper location
     cp karton-x86_64-unknown-linux-gnu/karton /usr/local/bin/
     rm -rf karton.tar.xz karton-x86_64-unknown-linux-gnu
 
-## windows manual example
+#### windows manual example
 
     # TODO: I have no idea
     curl -L https://github.com/cwmoss/karton-rs/releases/download/v0.1.0/karton-x86_64-pc-windows-msvc.zip -o ./karton.zip
@@ -36,9 +36,9 @@ download from release page, unzip, move binary to a proper location
     cp karton-x86_64-pc-windows-msvc/karton.exe C:\Windows\
     rm -rf karton.zip karton-x86_64-pc-windows-msvc
 
-## run
+### run
 
-### examples
+#### examples
 
     # cd in a directory with jpg files
     # -o starts your webbrowser
@@ -50,7 +50,7 @@ download from release page, unzip, move binary to a proper location
     # use as local browser
     karton browse
 
-### help
+#### help
 
     # see all options
     karton -h
@@ -58,16 +58,25 @@ download from release page, unzip, move binary to a proper location
     # see all options for serve command
     karton serve -h
 
-# TODO
 
-- [ ] auth, session
+### TODO
+
 - [ ] faster metadata (getimagesize/mime type)
 - [ ] browse mode: recurse subdirectories
-- [ ] serve mode: admin: create folder, upload images
-- [x] stats: health, uptime, served requests, cache size
 - [ ] cli: cache clear
 - [ ] win powershell: installer
 - [ ] tests
+- [ ] admin interface SSE (just for fun)
+- [ ] refactor modules, DI
+
+### In Progress
+
+- [ ] auth, session
+- [ ] serve mode: admin: create folder, upload images
+
+### Done ✓
+
+- [x] stats: health, uptime, served requests, cache size
 
 ## file upload
 

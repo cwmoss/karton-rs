@@ -9,7 +9,7 @@ use memory_stats::{MemoryStats, memory_stats};
 use axum::{
     Router,
     body::{Body, Bytes},
-    extract::{DefaultBodyLimit, Path, Query, State},
+    extract::{DefaultBodyLimit, FromRequest, Multipart, Path, Query, Request, State},
     http::{HeaderValue, StatusCode, header},
     middleware,
     response::{Html, IntoResponse, Json, Redirect, Response},
@@ -172,7 +172,7 @@ async fn main() {
         .route("/zip", get(download_zip))
         .route("/i/{size}/{img}", get(resize_image2))
         .route("/", get(show_album))
-        .route("/", post(upload_image))
+        .route("/", post(upload_image_maybe_multipart))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024));
     let album = match anon {
         false => album
@@ -398,35 +398,6 @@ async fn stats_handler(State(app_state): State<Arc<AppState>>) -> Json<Stats> {
     })
 }
 
-async fn upload_image(
-    State(app_state): State<Arc<AppState>>,
-    Path(album): Path<String>,
-    Query(params): Query<std::collections::HashMap<String, String>>,
-    body: Bytes,
-) -> impl IntoResponse {
-    let filename = params
-        .get("filename")
-        .unwrap_or(&"uploaded.jpg".to_string())
-        .clone();
-    let album_path = PathBuf::from(album::album_path(&app_state.base_path, &album));
-    if !album_path.exists() {
-        return (StatusCode::NOT_FOUND, "Album not found").into_response();
-    }
-    let file_path = album_path.join(filename);
-    match tokio::fs::write(&file_path, body).await {
-        Ok(_) => {
-            // Optionally rebuild album index
-            // album::build_alben(&app_state.base_path, &app_state.single_album, &app_state.filtered_extensions, &app_state.store);
-            (StatusCode::OK, "Image uploaded successfully").into_response()
-        }
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to save image: {}", e),
-        )
-            .into_response(),
-    }
-}
-
 fn calculate_cache_size(cache_path: &std::path::Path) -> u64 {
     let mut size = 0;
     if let Ok(entries) = std::fs::read_dir(cache_path) {
@@ -463,5 +434,137 @@ where
             }
             None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
         }
+    }
+}
+
+/*
+use axum::{
+    async_trait,
+    body::Bytes,
+    extract::{FromRequest, Multipart, Request},
+    http::{StatusCode, header::CONTENT_TYPE},
+};
+*/
+
+struct Upload(Bytes, String);
+
+async fn upload_image(
+    State(app_state): State<Arc<AppState>>,
+    Path(album): Path<String>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+    body: Bytes,
+) -> impl IntoResponse {
+    let filename = params
+        .get("filename")
+        .unwrap_or(&"uploaded.jpg".to_string())
+        .clone();
+    let album_path = PathBuf::from(album::album_path(&app_state.base_path, &album));
+    if !album_path.exists() {
+        return (StatusCode::NOT_FOUND, "Album not found").into_response();
+    }
+    let file_path = album_path.join(filename);
+    match tokio::fs::write(&file_path, body).await {
+        Ok(_) => {
+            // Optionally rebuild album index
+            // album::build_alben(&app_state.base_path, &app_state.single_album, &app_state.filtered_extensions, &app_state.store);
+            (StatusCode::OK, "Image uploaded successfully").into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to save image: {}", e),
+        )
+            .into_response(),
+    }
+}
+
+async fn upload_image_maybe_multipart(
+    State(app_state): State<Arc<AppState>>,
+    Path(album): Path<String>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+    jpeg: Upload,
+) -> impl IntoResponse {
+    println!("multipart upload received, size: {}", jpeg.0.len());
+    tokio::fs::write("mp-upload.jpg", jpeg.0).await.unwrap();
+    println!("saved to mp-upload.jpg {}", jpeg.1);
+    (StatusCode::OK, "image uploaded".to_string())
+}
+
+/*
+
+filepond multipart example
+
+------geckoformboundary78433f7bc076acdc7502e5be342534fd
+Content-Disposition: form-data; name="filepond"
+
+{}
+------geckoformboundary78433f7bc076acdc7502e5be342534fd
+Content-Disposition: form-data; name="filepond"; filename="P1000357.JPG"
+Content-Type: image/jpeg
+
+ÿØÿáÉExifII ...
+
+*/
+impl<S> FromRequest<S> for Upload
+where
+    Bytes: FromRequest<S>,
+    S: Send + Sync,
+{
+    type Rejection = StatusCode;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        println!("FromRequest Jpeg/multipart\n");
+        let Some(content_type) = req.headers().get(header::CONTENT_TYPE) else {
+            return Err(StatusCode::BAD_REQUEST);
+        };
+        let Ok(content_type) = content_type.to_str() else {
+            return Err(StatusCode::BAD_REQUEST);
+        };
+        dbg!(content_type);
+
+        // we take the first part only for simplicity
+        // only support filepond (2 times name filepond)
+        let body = if content_type.starts_with("multipart/form-data") {
+            let mut multipart = Multipart::from_request(req, state)
+                .await
+                .map_err(|_| StatusCode::BAD_REQUEST)?;
+            // dbg!(multipart);
+            /*  while let Some(mut field) = multipart.next_field().await.unwrap() {
+                let name = field.name().unwrap().to_string();
+                let data = field.bytes().await.unwrap();
+
+                println!("Length of `{}` is {} bytes", name, data.len());
+            }*/
+
+            let Ok(Some(field)) = multipart.next_field().await else {
+                return Err(StatusCode::BAD_REQUEST);
+            };
+            let name = field.name().unwrap().to_string();
+            // dbg!(name);
+            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            match name.as_str() {
+                "filepond" => {
+                    let Ok(Some(field)) = multipart.next_field().await else {
+                        return Err(StatusCode::BAD_REQUEST);
+                    };
+                    // let fname = field.name().unwrap().to_string();
+                    // dbg!(name);
+                    let fdata = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    (fdata, format!("{:?}", data))
+                }
+                _ => (data, "".to_string()),
+            }
+            // data
+        } else if content_type == "image/jpeg" {
+            (
+                Bytes::from_request(req, state)
+                    .await
+                    .map_err(|_| StatusCode::BAD_REQUEST)?,
+                "meta".to_string(),
+            )
+        } else {
+            return Err(StatusCode::BAD_REQUEST);
+        };
+
+        Ok(Self(body.0, body.1))
     }
 }
