@@ -67,6 +67,7 @@ download from release page, unzip, move binary to a proper location
 - [x] stats: health, uptime, served requests, cache size
 - [ ] cli: cache clear
 - [ ] win powershell: installer
+- [ ] tests
 
 ## file upload
 
@@ -75,3 +76,7 @@ example: upload this-is-pepper.jpg to album "hugo"
     curl -X POST -H 'Content-Type: image/jpeg' \
         --data-binary "@this-is-pepper.jpg" \
         "http://localhost:5005/a/hugo?filename=this-is-pepper.jpg"
+
+// https://dev.to/nopenoshishi/testing-multipart-upload-requests-in-axum-three-approaches-5c13
+// https://medium.com/@1xahmed/lets-build-a-thumbnail-server-in-rust-6c9f5b064bd4
+// https://users.rust-lang.org/t/axum-post-handler-that-accepts-multipart-and-image-jpeg/113182
