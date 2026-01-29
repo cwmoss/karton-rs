@@ -504,6 +504,7 @@ Content-Type: image/jpeg
 ÿØÿáÉExifII ...
 
 */
+
 impl<S> FromRequest<S> for Upload
 where
     Bytes: FromRequest<S>,
@@ -523,41 +524,16 @@ where
 
         // we take the first part only for simplicity
         // only support filepond (2 times name filepond)
-        let body = if content_type.starts_with("multipart/form-data") {
-            let mut multipart = Multipart::from_request(req, state)
-                .await
-                .map_err(|_| StatusCode::BAD_REQUEST)?;
-            // dbg!(multipart);
-            /*  while let Some(mut field) = multipart.next_field().await.unwrap() {
-                let name = field.name().unwrap().to_string();
-                let data = field.bytes().await.unwrap();
-
-                println!("Length of `{}` is {} bytes", name, data.len());
-            }*/
-
-            let Ok(Some(field)) = multipart.next_field().await else {
-                return Err(StatusCode::BAD_REQUEST);
-            };
-            let name = field.name().unwrap().to_string();
-            // dbg!(name);
-
-            // TODO
-            // https://docs.rs/axum/latest/axum/extract/multipart/struct.Field.html
-            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-            match name.as_str() {
-                "filepond" => {
-                    let Ok(Some(field)) = multipart.next_field().await else {
-                        return Err(StatusCode::BAD_REQUEST);
-                    };
-                    // let fname = field.name().unwrap().to_string();
-                    // dbg!(name);
-                    let fdata = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-                    (fdata, format!("{:?}", data))
-                }
-                _ => (data, "".to_string()),
-            }
+        if content_type.starts_with("multipart/form-data") {
+            return Self::handle_multipart(
+                Multipart::from_request(req, state)
+                    .await
+                    .map_err(|_| StatusCode::BAD_REQUEST)?,
+            )
+            .await;
             // data
-        } else if content_type == "image/jpeg" {
+        }
+        let body = if content_type == "image/jpeg" {
             (
                 Bytes::from_request(req, state)
                     .await
@@ -569,5 +545,33 @@ where
         };
 
         Ok(Self(body.0, body.1))
+    }
+}
+
+impl Upload {
+    async fn handle_multipart(mut multipart: Multipart) -> Result<Self, StatusCode> {
+        // dbg!(multipart);
+
+        let Ok(Some(field)) = multipart.next_field().await else {
+            return Err(StatusCode::BAD_REQUEST);
+        };
+        let name = field.name().unwrap().to_string();
+        // dbg!(name);
+
+        // TODO
+        // https://docs.rs/axum/latest/axum/extract/multipart/struct.Field.html
+        let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+        match name.as_str() {
+            "filepond" => {
+                let Ok(Some(field)) = multipart.next_field().await else {
+                    return Err(StatusCode::BAD_REQUEST);
+                };
+                // let fname = field.name().unwrap().to_string();
+                // dbg!(name);
+                let fdata = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                Ok(Self(fdata, format!("{:?}", data)))
+            }
+            _ => Ok(Self(data, "".to_string())),
+        }
     }
 }
