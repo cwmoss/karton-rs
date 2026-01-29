@@ -253,7 +253,7 @@ gallery-grid figure {
   }
 }
 
-gallery-grid figure>div {
+gallery-grid figure > div {
   position: absolute;
   /* position content absolutely */
   top: 0;
@@ -286,9 +286,18 @@ admin-panel {
   position: sticky;
   display: block;
   top: 0;
-  /* z-index: 99; */
+  z-index: 99;
   width: 100%;
-  padding: 1rem;
+
   background-color: white;
   border-bottom: 3px dashed black;
+  > * {
+    padding: 0.5rem;
+  }
+}
+
+server-stats {
+  display: flex;
+  gap: 1rem;
+  background-color: #eee;
 }

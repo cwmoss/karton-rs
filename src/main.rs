@@ -9,7 +9,7 @@ use memory_stats::{MemoryStats, memory_stats};
 use axum::{
     Router,
     body::{Body, Bytes},
-    extract::{Path, Query, State},
+    extract::{DefaultBodyLimit, Path, Query, State},
     http::{HeaderValue, StatusCode, header},
     middleware,
     response::{Html, IntoResponse, Json, Redirect, Response},
@@ -172,7 +172,8 @@ async fn main() {
         .route("/zip", get(download_zip))
         .route("/i/{size}/{img}", get(resize_image2))
         .route("/", get(show_album))
-        .route("/", post(upload_image));
+        .route("/", post(upload_image))
+        .layer(DefaultBodyLimit::max(10 * 1024 * 1024));
     let album = match anon {
         false => album
             .route_layer(middleware::from_fn_with_state(
