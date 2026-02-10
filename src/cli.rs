@@ -86,7 +86,7 @@ pub fn get_cli_args_and_setup() -> (Cli, String, String, bool, bool) {
     if single_album == "" {
         print!("* Multi-album mode: {}/*/\n", base);
     } else {
-        base = path.parent().unwrap().to_string_lossy().to_string();
+        // base = path.parent().unwrap().to_string_lossy().to_string();
         print!("* Single-album mode: {}/{}\n", base, single_album);
     }
 

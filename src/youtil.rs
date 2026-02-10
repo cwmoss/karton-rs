@@ -1,6 +1,34 @@
 use std::fs;
 use std::path::PathBuf;
 
+pub fn list_images_dirs_files(
+    base: &PathBuf,
+    filtered_extensions: Option<&Vec<String>>,
+) -> Vec<PathBuf> {
+    // et pattern = format!("{}/{}/", base, name);
+    println!("Listing files in DIR: {:?}\n", base);
+    fs::read_dir(&base)
+        .unwrap()
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.file_name()?.to_str()?.starts_with(".") {
+                return None;
+            }
+            if let Some(filter) = filtered_extensions {
+                let ext = path.extension()?.to_str()?.to_lowercase();
+                if filter.contains(&ext) {
+                    Some(path)
+                } else {
+                    None
+                }
+            } else {
+                Some(path)
+            }
+        })
+        .collect()
+}
+
 pub fn list_files(base: &str, name: &str, filtered_extensions: &Vec<String>) -> Vec<PathBuf> {
     let pattern = format!("{}/{}/", base, name);
     // print!("Listing files in pattern: {}\n", pattern);
@@ -52,6 +80,26 @@ pub fn format_size(bytes: u64) -> String {
         unit_index += 1;
     }
     format!("{:.1} {}", size, UNITS[unit_index])
+}
+
+// https://docs.rs/imagesize/0.14.0/imagesize/
+// alt: https://github.com/xiaozhuai/imageinfo-rs
+pub fn get_image_size(buf: &[u8]) -> (usize, usize) {
+    match imagesize::blob_size(&buf) {
+        Ok(size) => (size.width, size.height),
+        Err(_) => (0, 0),
+    }
+}
+
+pub fn get_mime_type(buf: &[u8]) -> (String, String) {
+    // let buf = [0xFF, 0xD8, 0xFF, 0xAA];
+    if let Some(kind) = infer::get(&buf) {
+        (kind.mime_type().to_string(), kind.extension().to_string())
+    } else {
+        ("application/octetstream".to_string(), "".to_string())
+    }
+    // assert_eq!(kind.mime_type(), "image/jpeg");
+    // assert_eq!(kind.extension(), "jpg");
 }
 
 /*

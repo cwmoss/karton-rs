@@ -89,6 +89,9 @@ async fn main() {
     // Create a shared state for our application. We use an Arc so that we clone the pointer to the state and
     // not the state itself. The AtomicU16 is a thread-safe integer that we use to keep track of the number of visits.
 
+    let baseindex = youtil::list_images_dirs_files(&PathBuf::from(base), None);
+    println!("basedir {:?}", &baseindex);
+
     match args.command {
         cli::Commands::Scan {} => {
             print!("Scanning for albums\n");
