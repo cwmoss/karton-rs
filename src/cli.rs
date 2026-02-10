@@ -75,21 +75,15 @@ pub enum Commands {
     },
 }
 
-pub fn get_cli_args_and_setup() -> (Cli, String, String, bool, bool) {
+pub fn get_cli_args_and_setup() -> (Cli, String, bool, bool) {
     let args = Cli::parse();
     //let base = args.base.clone();
     let path = StdPath::new(&args.base);
     let mut base = path.canonicalize().unwrap().to_string_lossy().to_string();
 
-    let single_album = check_if_base_contains_jpgs(&base);
+    // let single_album = check_if_base_contains_jpgs(&base);
 
-    if single_album == "" {
-        print!("* Multi-album mode: {}/*/\n", base);
-    } else {
-        // base = path.parent().unwrap().to_string_lossy().to_string();
-        print!("* Single-album mode: {}/{}\n", base, single_album);
-    }
-
+    print!("* Base path: {}/*/\n", base);
     print!("Using store path: {}\n", args.store);
 
     let (anon, browser_mode) = match args.clone().command {
@@ -99,7 +93,7 @@ pub fn get_cli_args_and_setup() -> (Cli, String, String, bool, bool) {
         _ => (true, true),
     };
 
-    (args, base, single_album, anon, browser_mode)
+    (args, base, anon, browser_mode)
 }
 
 fn get_default_store_path() -> String {

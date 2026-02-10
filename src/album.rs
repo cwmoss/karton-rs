@@ -38,16 +38,8 @@ pub struct FileInfo {
 }
 
 // path.file_name()?.to_string_lossy().to_string()
-pub fn build_alben(
-    base: &str,
-    single_album: &str,
-    filtered_extensions: &Vec<String>,
-    store: &Store,
-) {
-    let albums: Vec<String> = match single_album {
-        "" => list_dirs(base),
-        _ => vec![single_album.to_string()],
-    };
+pub fn build_alben(base: &str, filtered_extensions: &Vec<String>, store: &Store) {
+    let albums: Vec<String> = list_dirs(base);
 
     for album in albums {
         print!("... check album: {} ", album);

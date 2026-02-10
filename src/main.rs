@@ -50,7 +50,6 @@ struct Stats {
 pub struct AppState {
     pub base_path: String,
     pub prefix: String,
-    pub single_album: String,
     pub filtered_extensions: Vec<String>,
     pub store: store::Store,
     pub anon: bool,
@@ -63,7 +62,7 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    let (args, base, single_album, anon, browser_mode) = cli::get_cli_args_and_setup();
+    let (args, base, anon, browser_mode) = cli::get_cli_args_and_setup();
 
     let bind_host;
     let hostport;
@@ -73,7 +72,6 @@ async fn main() {
 
     let app_state = AppState {
         base_path: base.clone(),
-        single_album: single_album,
         filtered_extensions: args.extensions.split(',').map(|s| s.to_string()).collect(),
         store: store.clone(),
         prefix: http_prefix.clone(),
@@ -97,7 +95,6 @@ async fn main() {
             print!("Scanning for albums\n");
             album::build_alben(
                 &app_state.base_path,
-                &app_state.single_album,
                 &app_state.filtered_extensions,
                 &app_state.store,
             );
@@ -123,7 +120,6 @@ async fn main() {
             bind_host = host;
             album::build_alben(
                 &app_state.base_path,
-                &app_state.single_album,
                 &app_state.filtered_extensions,
                 &app_state.store,
             );
@@ -135,7 +131,6 @@ async fn main() {
             bind_host = host;
             album::build_alben(
                 &app_state.base_path,
-                &app_state.single_album,
                 &app_state.filtered_extensions,
                 &app_state.store,
             );
@@ -256,12 +251,12 @@ async fn fetch_stats(host: String, port: u16) -> Result<Stats, Box<dyn std::erro
 async fn if_single_album_redirect(
     State(app_state): State<Arc<AppState>>,
 ) -> impl axum::response::IntoResponse {
-    if app_state.single_album != "" {
-        Redirect::permanent(&format!("{}a/{}", app_state.prefix, app_state.single_album))
-            .into_response()
-    } else {
-        Html("hello, my name is karton").into_response()
-    }
+    //if app_state.single_album != "" {
+    //    Redirect::permanent(&format!("{}a/{}", app_state.prefix, app_state.single_album))
+    //        .into_response()
+    //} else {
+    Html("hello, my name is karton").into_response()
+    //}
 }
 
 async fn resize_image2(
