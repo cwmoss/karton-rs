@@ -1,9 +1,10 @@
 pub mod album;
 pub mod album_image;
 pub mod auth;
+pub mod browser;
 pub mod cli;
-pub mod handler;
 pub mod store;
+pub mod view;
 pub mod youtil;
 
 use memory_stats::{MemoryStats, memory_stats};
@@ -185,8 +186,8 @@ async fn main() {
     let browser = Router::new()
         // .route("/zip", get(download_zip))
         .route("/i/{size}/{img}", get(resize_image2))
-        .route("/{*subpath}", get(handler::browse_subdir))
-        .route("/", get(handler::browse_subdir));
+        .route("/{*subpath}", get(browser::browse_subdir))
+        .route("/", get(browser::browse_subdir));
 
     let router = Router::new();
     let router = match browser_mode {

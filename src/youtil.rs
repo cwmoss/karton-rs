@@ -5,22 +5,22 @@ use std::path::PathBuf;
 // use axum::Error;
 // use std::vec::Vec
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ImageInfo {
-    path: PathBuf,
+    path: String,
     mime: String,
     w: usize,
     h: usize,
 }
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FileInfo {
-    path: PathBuf,
+    path: String,
     mime: String,
 }
 pub fn list_images_dirs_files(
     base: &PathBuf,
     filtered_extensions: Option<&Vec<String>>,
-) -> Result<(Vec<ImageInfo>, Vec<FileInfo>, Vec<PathBuf>), Error> {
+) -> Result<(Vec<ImageInfo>, Vec<FileInfo>, Vec<String>), Error> {
     // et pattern = format!("{}/{}/", base, name);
     println!("Listing files in DIR: {:?}\n", base);
     Ok(fs::read_dir(&base)?
@@ -42,20 +42,21 @@ pub fn list_images_dirs_files(
             }
         })
         .fold((Vec::new(), Vec::new(), Vec::new()), |mut acc, it| {
+            let fname = it.file_name().unwrap().to_string_lossy().to_string();
             if it.is_dir() {
-                acc.2.push(it);
+                acc.2.push(fname);
             } else {
-                let (mime, ext, is_image) = get_mime_type_and_is_image(&it);
+                let (mime, _ext, is_image) = get_mime_type_and_is_image(&it);
                 if is_image {
                     let size = get_image_size_from_file(&it);
                     acc.0.push(ImageInfo {
-                        path: it,
+                        path: fname,
                         mime,
                         w: size.0,
                         h: size.1,
                     });
                 } else {
-                    acc.1.push(FileInfo { path: it, mime });
+                    acc.1.push(FileInfo { path: fname, mime });
                 }
             }
             acc
