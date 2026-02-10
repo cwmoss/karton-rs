@@ -2,8 +2,10 @@ pub mod album;
 pub mod album_image;
 pub mod auth;
 pub mod cli;
+pub mod handler;
 pub mod store;
 pub mod youtil;
+
 use memory_stats::{MemoryStats, memory_stats};
 
 use axum::{
@@ -126,14 +128,9 @@ async fn main() {
             open_browser = open;
         }
         cli::Commands::Browse { host, port } => {
-            print!("Serving albums\n");
+            print!("Browsing direcory\n");
             hostport = format!("{}:{}", host, port).to_string();
             bind_host = host;
-            album::build_alben(
-                &app_state.base_path,
-                &app_state.filtered_extensions,
-                &app_state.store,
-            );
             open_browser = true;
         }
     }
@@ -143,20 +140,6 @@ async fn main() {
     }
 
     let state = Arc::new(app_state);
-
-    // let base_path = StdPath::new(&app_state.base_path);
-    // print!("Base path: {:#?}\n", base_path.file_name().unwrap());
-
-    // let serve_dir = ServeDir::new("public");
-    // let serve_assets = ServeEmbed::<Assets>::new();
-
-    // setup our application with "hello world" route at "/
-    // let mut app = Router::new(); Router<Arc<AppState>>
-    /*let mw = ServiceBuilder::new().layer(middleware::from_fn(
-            // app_state.clone(),
-            auth::check_auth_middleware,
-        ));
-    */
 
     println!("anon? {}", anon);
 
@@ -184,17 +167,22 @@ async fn main() {
         true => album,
     };
 
-    let router = Router::new()
-        // .route("/imagesize/{album}/{size}/{img}", get(resize_image)) // Placeholder route
-        //.route("/{album}/zip", get(download_zip))
-        //.route("/{album}/i/{size}/{img}", get(resize_image2)) // big size route
-        //.route("/{album}", get(show_album))
-        .nest("/a/{album}", album)
+    let browser = Router::new()
+        // .route("/zip", get(download_zip))
+        .route("/i/{size}/{img}", get(resize_image2))
+        .route("/{*subpath}", get(handler::browse_subdir))
+        .route("/", get(handler::browse_subdir));
+
+    let router = Router::new();
+    let router = match browser_mode {
+        false => router.nest("/a/{album}", album),
+        true => router.nest("/b", browser),
+    };
+
+    let router = router
         .route("/_assets/{*file}", get(static_handler))
-        // .nest_service("/_0assets", serve_dir.clone())
-        // .nest_service("/_assets", serve_assets.clone())
         .route("/stats", get(stats_handler))
-        .route("/", get(if_single_album_redirect))
+        .route("/", get(redirect_if_browser))
         .with_state(state)
         .fallback_service(get(not_found));
 
@@ -248,15 +236,14 @@ async fn fetch_stats(host: String, port: u16) -> Result<Stats, Box<dyn std::erro
     }
 }
 
-async fn if_single_album_redirect(
+async fn redirect_if_browser(
     State(app_state): State<Arc<AppState>>,
 ) -> impl axum::response::IntoResponse {
-    //if app_state.single_album != "" {
-    //    Redirect::permanent(&format!("{}a/{}", app_state.prefix, app_state.single_album))
-    //        .into_response()
-    //} else {
-    Html("hello, my name is karton").into_response()
-    //}
+    if app_state.browser_mode {
+        Redirect::permanent(&format!("{}b", app_state.prefix)).into_response()
+    } else {
+        Html("hello, my name is karton").into_response()
+    }
 }
 
 async fn resize_image2(
