@@ -83,8 +83,8 @@ pub fn get_cli_args_and_setup() -> (Cli, String, bool, bool) {
 
     // let single_album = check_if_base_contains_jpgs(&base);
 
-    print!("* Base path: {}/*/\n", base);
-    print!("Using store path: {}\n", args.store);
+    tracing::info!("*** Base path: {}/*/", base);
+    tracing::info!("*** Store path: {}", args.store);
 
     let (anon, browser_mode) = match args.clone().command {
         Commands::Serve {

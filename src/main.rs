@@ -18,9 +18,9 @@ use axum::{
     routing::{get, post},
     serve::Listener,
 };
-
 use image::ImageFormat;
 use rust_embed::Embed;
+use tracing_subscriber::EnvFilter;
 // use std::borrow::Cow;
 
 use std::path::PathBuf;
@@ -33,7 +33,9 @@ use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::{Stream, StreamExt};
 use tokio_util::io::ReaderStream;
 use tower::ServiceBuilder;
+use tower_http::trace::{self, TraceLayer};
 use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
+use tracing::Level;
 use webbrowser;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -64,8 +66,21 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+    // https://github.com/tokio-rs/axum/blob/main/examples/tracing-aka-logging/src/main.rs
+    tracing_subscriber::fmt()
+        // This allows you to use, e.g., `RUST_LOG=info` or `RUST_LOG=debug`
+        // when running the app to set log levels.
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            format!(
+                "{}=info,tower_http=info,axum::rejection=info",
+                env!("CARGO_CRATE_NAME")
+            )
+            .into()
+        }))
+        .with_target(false)
+        .compact()
+        .init();
     let (args, base, anon, browser_mode) = cli::get_cli_args_and_setup();
-
     let bind_host;
     let hostport;
     let http_prefix = format!("{}/", args.prefix.trim_end_matches('/'));
@@ -184,7 +199,12 @@ async fn main() {
         .route("/stats", get(stats_handler))
         .route("/", get(redirect_if_browser))
         .with_state(state)
-        .fallback_service(get(not_found));
+        .fallback_service(get(not_found))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        );
 
     // let prefixed_router = Router::new().nest(&http_prefix, app);
 
@@ -213,6 +233,11 @@ async fn main() {
         http_prefix
     );
 
+    tracing::info!(
+        "listening on http://{:?}{}",
+        listener.local_addr().ok().unwrap(),
+        http_prefix
+    );
     if open_browser {
         // let _ = after_start().await;
         let future = after_start(hostport.clone());
