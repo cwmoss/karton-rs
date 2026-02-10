@@ -58,7 +58,6 @@ download from release page, unzip, move binary to a proper location
     # see all options for serve command
     karton serve -h
 
-
 ### TODO
 
 - [ ] faster metadata (getimagesize/mime type)

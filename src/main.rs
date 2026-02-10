@@ -171,6 +171,7 @@ async fn main() {
     let album = Router::new()
         .route("/zip", get(download_zip))
         .route("/i/{size}/{img}", get(resize_image2))
+        .route("/{*subpath}", get(show_subpath))
         .route("/", get(show_album))
         .route("/", post(upload_image_maybe_multipart))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024));
@@ -352,6 +353,10 @@ async fn show_album(
 // struct below, where folder = "examples/public/".
 async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
     StaticFile(path)
+}
+
+async fn show_subpath(Path((album, subpath)): Path<(String, String)>) -> impl IntoResponse {
+    Html("hello ".to_string() + subpath.as_str() + album.as_str())
 }
 
 // Finally, we use a fallback route for anything that didn't match.

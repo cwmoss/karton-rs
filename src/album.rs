@@ -159,6 +159,7 @@ struct IndexTemplate<'a> {
     total: usize,
     prefix: &'a str,
     admin: bool,
+    testurl: &'a str,
 }
 
 pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
@@ -173,6 +174,7 @@ pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
         name: album.name.as_str(),
         album: &album_json.to_string(),
         total: album.images.len(),
+        testurl: "/a/a name with space/subfolder",
         prefix,
         admin,
     };
@@ -211,6 +213,6 @@ pub fn zip(base: &str, album: &str, filtered_extensions: &Vec<String>) -> Option
     zip.finish().ok()?;
     print!("Closing ZIP file {zip_path:?}\n");
 
-    let zip_data = fs::read(&zip_path).ok()?;
-    Some(zip_data)
+    let zip_data = fs::read(&zip_path).ok();
+    zip_data
 }
