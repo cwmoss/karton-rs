@@ -1,15 +1,12 @@
 import { BalancedMasonryGrid } from "./grid-vanilla.js";
 // "https://cdn.skypack.dev/@masonry-grid/vanilla";
 
-let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${
-  it.w
-}; --height: ${it.h};"><div>
-    <a href="./a/${name}/i/big/${it.name}" data-pswp-width="${
-      it.w
-    }" data-pswp-height="${it.h}"><img src="./a/${name}/i/thumb/${
-      it.name
-    }" alt="photography" loading="lazy"/></a>
-    <figcaption>${it.name} ${it.w} x ${it.h}</figcaption>
+let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${it.w
+  }; --height: ${it.h};"><div>
+    <a href="./b/${name}/i/big/${it.path}" data-pswp-width="${it.w
+  }" data-pswp-height="${it.h}"><img src="./a/${name}/i/thumb/${it.path
+  }" alt="photography" loading="lazy"/></a>
+    <figcaption>${it.path} ${it.w} x ${it.h}</figcaption>
 </div></figure>`;
 
 function ratio(it) {

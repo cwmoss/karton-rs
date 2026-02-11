@@ -81,6 +81,7 @@ async fn main() {
         .with_target(false)
         .compact()
         .init();
+
     let (args, base, anon, browser_mode) = cli::get_cli_args_and_setup();
     let bind_host;
     let hostport;
