@@ -15,6 +15,7 @@ use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, ResizeAlg, ResizeOptions, Resizer};
 
 use std::ops::{Div, Mul};
+use std::path::PathBuf;
 
 pub enum Sizes {
     Big,
@@ -31,18 +32,14 @@ pub fn get_size(size: Sizes) -> Size {
     }
 }
 
-// fast version
-// https://github.com/tpyo/shrinkray/blob/main/crates/lib/src/options.rs
-pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {
-    // Placeholder implementation
-    let file = format!("{}/{}/{}", base, album, img);
+pub fn resize_image_path(imgpath: &PathBuf, size: Size) -> Option<DynamicImage> {
     let (width, height) = (size.0, size.1);
     println!(
-        "Resizing image fast '{}' in album '{}' to size '{}' => {}",
-        img, album, size.0, file
+        "Resizing image fast '{:?}' to size '{}x{}'",
+        imgpath, size.0, size.1
     );
 
-    let img = ImageReader::open(file).unwrap().decode().unwrap();
+    let img = ImageReader::open(imgpath).unwrap().decode().unwrap();
 
     let (src_w, src_h) = (img.width(), img.height());
 
@@ -75,6 +72,14 @@ pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<Dy
         )
         .unwrap();
     return Some(dst_image);
+}
+// fast version
+// https://github.com/tpyo/shrinkray/blob/main/crates/lib/src/options.rs
+pub fn resize_image(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {
+    // Placeholder implementation
+    // let file = format!("{}/{}/{}", base, album, img);
+    let file = PathBuf::from(base).join(album).join(img);
+    resize_image_path(&file, size)
 }
 
 pub fn resize_image_img(base: &str, album: &str, img: &str, size: Size) -> Option<DynamicImage> {

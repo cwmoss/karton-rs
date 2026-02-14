@@ -301,3 +301,19 @@ server-stats {
   gap: 1rem;
   background-color: #eee;
 }
+
+folder-list {
+  display: block;
+  margin: 1rem;
+  a {
+    color: black;
+  }
+  ul {
+    display: flex;
+    gap: 1rem;
+  }
+  ul,
+  li {
+    list-style-type: none;
+  }
+}

@@ -22,6 +22,11 @@
       crossorigin
       src="./_assets/js/gallery-grid.js"
     ></script>
+    <script
+      type="module"
+      crossorigin
+      src="./_assets/js/folder-list.js"
+    ></script>
     <link rel="stylesheet" href="./_assets/css/karton.css" />
     <link rel="stylesheet" href="./_assets/photoswipe/photoswipe.css" />
     {%if admin %}
@@ -44,7 +49,9 @@
         <a href="{{testurl|urlencode}}">testurl</a>
       </h2>
     </header>
-    <gallery-grid></gallery-grid>
+
+    <folder-list mode="{{mode}}"></folder-list>
+    <gallery-grid mode="{{mode}}"></gallery-grid>
 
     <script type="module">
       import Lightbox from "./_assets/photoswipe/photoswipe-lightbox.esm.min.js";
@@ -54,6 +61,7 @@
         gallery: "gallery-grid",
         children: "figure",
         pswpModule: PhotoSwipe,
+        bgOpacity: 0.9,
       });
       lightbox.on("uiRegister", function () {
         lightbox.pswp.ui.registerElement({

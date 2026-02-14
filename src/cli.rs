@@ -57,7 +57,7 @@ pub enum Commands {
         #[arg(long, default_value_t = String::from("127.0.0.1"))]
         host: String,
 
-        #[arg(long, default_value_t = 5005)]
+        #[arg(long, default_value_t = 6006)]
         port: u16,
     },
 

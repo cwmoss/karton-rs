@@ -1,11 +1,14 @@
 import { BalancedMasonryGrid } from "./grid-vanilla.js";
 // "https://cdn.skypack.dev/@masonry-grid/vanilla";
 
-let item_tpl = (it, name) => `<figure class="${ratio(it)}" style="--width: ${it.w
-  }; --height: ${it.h};"><div>
-    <a href="./b/${name}/i/big/${it.path}" data-pswp-width="${it.w
-  }" data-pswp-height="${it.h}"><img src="./a/${name}/i/thumb/${it.path
-  }" alt="photography" loading="lazy"/></a>
+let item_tpl = (it, grid) => `<figure class="${ratio(it)}" style="--width: ${
+  it.w
+}; --height: ${it.h};"><div>
+    <a href="${grid.base}/i/big/${grid.path}${it.path}" data-pswp-width="${
+      it.w
+    }" data-pswp-height="${it.h}"><img src="${grid.base}/i/thumb/${grid.path}${
+      it.path
+    }" alt="photography" loading="lazy"/></a>
     <figcaption>${it.path} ${it.w} x ${it.h}</figcaption>
 </div></figure>`;
 
@@ -22,10 +25,16 @@ function ratio(it) {
 class GalleryGrid extends HTMLElement {
   data = {};
   name = "";
-
+  base = "";
+  path = "";
   connectedCallback() {
     this.data = window.__load_data;
     this.name = this.data.name;
+    this.path = this.data.path;
+    if (this.path) this.path += "/";
+    this.mode = this.getAttribute("mode");
+    this.base = this.mode == "browse" ? "./b" : "./a";
+
     console.log("GalleryGrid connected ...", this.data);
     this.render();
   }
@@ -33,7 +42,7 @@ class GalleryGrid extends HTMLElement {
   render() {
     let html = this.data.images
       .map((it) => {
-        return item_tpl(it, this.name);
+        return item_tpl(it, this);
       })
       .join("\n");
     this.innerHTML = html;

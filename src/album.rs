@@ -152,6 +152,7 @@ struct IndexTemplate<'a> {
     prefix: &'a str,
     admin: bool,
     testurl: &'a str,
+    mode: &'a str,
 }
 
 pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
@@ -168,6 +169,7 @@ pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
         total: album.images.len(),
         testurl: "/a/a name with space/subfolder",
         prefix,
+        mode: "serve",
         admin,
     };
     template.render().unwrap()

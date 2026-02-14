@@ -10,7 +10,7 @@ pub mod youtil;
 use memory_stats::{MemoryStats, memory_stats};
 
 use axum::{
-    Router,
+    Router, ServiceExt,
     body::{Body, Bytes},
     extract::{DefaultBodyLimit, FromRequest, Multipart, Path, Query, Request, State},
     http::{HeaderValue, StatusCode, header},
@@ -33,7 +33,9 @@ use tokio_js_set_interval::set_timeout_async;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::{Stream, StreamExt};
 use tokio_util::io::ReaderStream;
+use tower::Layer;
 use tower::ServiceBuilder;
+use tower_http::normalize_path::NormalizePathLayer;
 use tower_http::trace::{self, TraceLayer};
 use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
 use tracing::Level;
@@ -186,7 +188,7 @@ async fn main() {
 
     let browser = Router::new()
         // .route("/zip", get(download_zip))
-        .route("/i/{size}/{img}", get(resize_image2))
+        .route("/i/{size}/{*img}", get(browser::resize_image_browsing))
         .route("/{*subpath}", get(browser::browse_subdir))
         .route("/", get(browser::browse_subdir));
 
@@ -215,6 +217,8 @@ async fn main() {
         "/" | "" => router,
         http_prefix => Router::new().nest(&http_prefix, router),
     };
+
+    let router = NormalizePathLayer::trim_trailing_slash().layer(router);
 
     // start the server
     let listener = tokio::net::TcpListener::bind(hostport.clone()).await;
@@ -245,7 +249,9 @@ async fn main() {
         let future = after_start(hostport.clone());
         set_timeout_async!(future, 600);
     }
-    axum::serve(listener, router).await.unwrap();
+    axum::serve(listener, ServiceExt::<Request>::into_make_service(router))
+        .await
+        .unwrap();
 }
 
 async fn after_start(hostport: String) {

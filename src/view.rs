@@ -17,6 +17,7 @@ struct IndexTemplate<'a> {
     prefix: &'a str,
     admin: bool,
     testurl: &'a str,
+    mode: &'a str,
 }
 
 pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
@@ -33,6 +34,7 @@ pub fn render_index(album: &Album, prefix: &str, admin: bool) -> String {
         total: album.images.len(),
         testurl: "/a/a name with space/subfolder",
         prefix,
+        mode: "serve",
         admin,
     };
     template.render().unwrap()
@@ -42,15 +44,18 @@ pub fn render_browser(dir: DirPage, prefix: &str, admin: bool) -> String {
     // let album_json = serde_json::to_string(&album).unwrap();
     let album_json = json!({
         "name": &dir.name,
+        "path": &dir.path,
         "images": &dir.images,
+        "folders": &dir.dirs
     });
     // .unwrap();
-
+    let mode = format!("browse");
     let template = IndexTemplate {
         name: &dir.name.as_str(),
         album: &album_json.to_string(),
         total: dir.images.len(),
         testurl: "/a/a name with space/subfolder",
+        mode: &mode,
         prefix,
         admin,
     };
