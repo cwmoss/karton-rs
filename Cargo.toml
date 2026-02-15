@@ -20,7 +20,7 @@ base64 = "0.22.1"
 clap = { version = "4.5.54", features = ["derive"] }
 directories = "6.0.0"
 fast_image_resize = { version = "6.0.0", features = ["image"] }
-image = "0.25.9"
+image = { version = "0.25.9", features = ["avif-native"] }
 md5 = "0.8.0"
 memory-stats = "1.2.0"
 mime_guess = "2.0.5"

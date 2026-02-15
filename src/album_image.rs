@@ -39,8 +39,13 @@ pub fn resize_image_path(imgpath: &PathBuf, size: Size) -> Option<DynamicImage> 
         imgpath, size.0, size.1
     );
 
-    let img = ImageReader::open(imgpath).unwrap().decode().unwrap();
-
+    // let img = ImageReader::open(imgpath).unwrap().decode().unwrap();
+    let img = ImageReader::open(imgpath)
+        .ok()?
+        .with_guessed_format()
+        .ok()?
+        .decode()
+        .ok()?;
     let (src_w, src_h) = (img.width(), img.height());
 
     let ar = AspectRatio::from_dimensions(img.width(), img.height());

@@ -88,3 +88,7 @@ example: upload this-is-pepper.jpg to album "hugo"
 // https://dev.to/nopenoshishi/testing-multipart-upload-requests-in-axum-three-approaches-5c13
 // https://medium.com/@1xahmed/lets-build-a-thumbnail-server-in-rust-6c9f5b064bd4
 // https://users.rust-lang.org/t/axum-post-handler-that-accepts-multipart-and-image-jpeg/113182
+
+### avid support
+
+    brew install dav1d

@@ -1,6 +1,6 @@
 all: target/release/karton
 
-target/release/karton: src/main.rs
+target/release/karton: src/main.rs Cargo.toml
 	cargo build --release
 	cp target/release/karton /usr/local/bin/karton
 	ls -alh ./target/release/karton

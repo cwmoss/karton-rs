@@ -70,6 +70,8 @@ pub async fn resize_image_browsing(
         .unwrap();
 
     let bytes: Vec<u8> = buffer.into_inner().unwrap().into_inner();
-
+    app_state
+        .scaled_images
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     ([(header::CONTENT_TYPE, "image/jpg")], bytes)
 }

@@ -17,12 +17,10 @@ use axum::{
     middleware,
     response::{Html, IntoResponse, Json, Redirect, Response},
     routing::{get, post},
-    serve::Listener,
 };
 use image::ImageFormat;
 use rust_embed::Embed;
 use tracing_subscriber::EnvFilter;
-// use std::borrow::Cow;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -30,14 +28,11 @@ use std::sync::atomic::AtomicU64;
 use std::time::Instant;
 use time::Duration as TDuration;
 use tokio_js_set_interval::set_timeout_async;
-use tokio_stream::wrappers::BroadcastStream;
-use tokio_stream::{Stream, StreamExt};
 use tokio_util::io::ReaderStream;
 use tower::Layer;
-use tower::ServiceBuilder;
 use tower_http::normalize_path::NormalizePathLayer;
 use tower_http::trace::{self, TraceLayer};
-use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
+use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use tracing::Level;
 use webbrowser;
 

@@ -45,8 +45,9 @@
     <header>
       <h1>{{name}}</h1>
       <h2>
-        {{total}} images <a href="./a/{{name}}/zip">download all as zip</a>
-        <a href="{{testurl|urlencode}}">testurl</a>
+        {{total}} images {%if mode=="serve" %}<a href="./a/{{name}}/zip"
+          >download all as zip</a
+        >{% endif %}
       </h2>
     </header>
 
