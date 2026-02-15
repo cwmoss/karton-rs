@@ -60,8 +60,6 @@ download from release page, unzip, move binary to a proper location
 
 ### TODO
 
-- [ ] faster metadata (getimagesize/mime type)
-- [ ] browse mode: recurse subdirectories
 - [ ] cli: cache clear
 - [ ] win powershell: installer
 - [ ] tests
@@ -76,6 +74,8 @@ download from release page, unzip, move binary to a proper location
 ### Done ✓
 
 - [x] stats: health, uptime, served requests, cache size
+- [x] faster metadata (getimagesize/mime type)
+- [x] browse mode: recurse subdirectories
 
 ## file upload
 
@@ -92,3 +92,8 @@ example: upload this-is-pepper.jpg to album "hugo"
 ### avid support
 
     brew install dav1d
+
+### format checks
+
+    tif/tiff extension match w mime
+    allow list
